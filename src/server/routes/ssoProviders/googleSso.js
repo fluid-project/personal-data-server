@@ -179,7 +179,7 @@ class GoogleSso {
      * Create and persist user, access token, and SSO account records based
      * on the given information.
      *
-     * @param {Object} userInfo - The informatino to use to create the user record.
+     * @param {Object} userInfo - The information to use to create the user record.
      * @param {Object} accessToken - The access token provided by the provider for
      *                               the user's access.
      * @param {Object} ssoDbOps - Database access for storing the user, access
@@ -195,7 +195,7 @@ class GoogleSso {
             userInfo, {name: "userId", value: userInfo.id}
         );
         let accountInfo = await ssoDbOps.addSsoAccount(userRecord, userInfo, options.provider);
-        console.log(`Adding access token for ${userInfo.id} to database`);
+        console.log(`Adding/Updating access token for ${userInfo.id} to database`);
         accountInfo = await ssoDbOps.refreshAccessToken(accountInfo, accessToken);
         return accountInfo;
     };

@@ -34,14 +34,20 @@ fluid.registerNamespace("fluid.tests.googleSso");
 
 const skipDocker = process.env.SKIPDOCKER === "true" ? true : false;
 
+// The mock code returned via the redirect URI
+const mockAuthCode = "mock-auth-code";
+
 const mockAccessToken = {
     access_token: "PatAccessToken.someRandomeString",
     expires_in: 3600,
     refresh_token: "anotherRandomString"
 };
 
-// The mock code returned via the redirect URI
-const mockAuthCode = "mock-auth-code";
+const mockAccessTokenUpdated = {
+    access_token: "UpdatedAccessToken.moreRandomeString",
+    expires_in: 3600,
+    refresh_token: "updatedRandomString"
+};
 
 // Possible errors are "invalid_request", "invalid_client", "invalid_grant".
 // "unauthorized_client", "unsupported_grant_type", or "invalid_scope".
@@ -64,11 +70,23 @@ const mockUserInfo = {
     verified_email: true
 };
 
+// The record with the same user id will be updated rather than being added as a new record
+const mockUserInfoUpdated = {
+    id: "PatId",
+    name: "Pat Smith Updated",
+    email: "pat.smith.updated@somewhere.com",
+    locale: "fr",
+    picture: "https://lh3.googleusercontent.com/picture/url/updated",
+    given_name: "Pat Updated",
+    family_name: "Smith Updated",
+    verified_email: true
+};
+
 // Keep track of the payload returned by the auth request for consequent tests
 let authPayload;
 
 jqUnit.test("Google SSO tests", async function () {
-    jqUnit.expect(skipDocker ? 43 : 45);
+    jqUnit.expect(skipDocker ? 73 : 75);
     let serverStatus, response;
 
     if (!skipDocker) {
@@ -141,7 +159,13 @@ jqUnit.test("Google SSO tests", async function () {
 
     // Test googleSso.storeUserAndAccessToken()
     response = await fluid.tests.googleSso.storeUserAndAccessToken(googleSso, ssoDbOps, mockUserInfo, mockAccessToken);
-    fluid.tests.googleSso.testStoreUserAndAccessToken(response, "googleSso.storeUserAndAccessToken()", googleSso.options);
+    fluid.tests.googleSso.testStoreUserAndAccessToken(response, ssoDbOps, "googleSso.storeUserAndAccessToken()", googleSso.options, mockUserInfo, mockAccessToken);
+    await fluid.tests.googleSso.testStoreUserAndAccessTokenInDb(ssoDbOps, "googleSso.storeUserAndAccessToken()", response.user.userId, 1, mockUserInfo, mockAccessToken);
+
+    // Recall googleSso.storeUserAndAccessToken() will update the old information
+    response = await fluid.tests.googleSso.storeUserAndAccessToken(googleSso, ssoDbOps, mockUserInfoUpdated, mockAccessTokenUpdated);
+    fluid.tests.googleSso.testStoreUserAndAccessToken(response, ssoDbOps, "googleSso.storeUserAndAccessToken()", googleSso.options, mockUserInfoUpdated, mockAccessTokenUpdated);
+    await fluid.tests.googleSso.testStoreUserAndAccessTokenInDb(ssoDbOps, "googleSso.storeUserAndAccessToken()", response.user.userId, 1, mockUserInfoUpdated, mockAccessTokenUpdated);
 
     // Test failure of "/sso/google/login/callback" -- missing authorization code parameter
     response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback");
@@ -269,34 +293,55 @@ fluid.tests.googleSso.storeUserAndAccessToken = async function (googleSso, ssoDb
     }
 };
 
-fluid.tests.googleSso.testStoreUserAndAccessToken = function (accountInfo, testPoint, ssoOptions) {
-    const checkPrefix = `Check '${testPoint}'`;
-    jqUnit.assertNotNull(`${checkPrefix} non-null result`, accountInfo);
+fluid.tests.googleSso.testStoreUserAndAccessToken = function (response, ssoDbOps, testPoint, ssoOptions, mockUserInfo, mockAccessToken) {
+    const checkPrefix = `Check '${testPoint}': `;
+
+    // Test function returned response
+    jqUnit.assertNotNull(`${checkPrefix} non-null result`, response);
 
     // Spot check parts of the User record that can be tested
-    jqUnit.assertNotNull(`${checkPrefix} non-null User`, accountInfo.user);
-    jqUnit.assertEquals(`${checkPrefix} User id`, mockUserInfo.id, accountInfo.user.userId);
-    jqUnit.assertEquals(`${checkPrefix} User name`, mockUserInfo.name, accountInfo.user.name);
-    jqUnit.assertEquals(`${checkPrefix} User email`, mockUserInfo.email, accountInfo.user.email);
-    jqUnit.assertEquals(`${checkPrefix} User username`, mockUserInfo.email, accountInfo.user.username);
-    jqUnit.assertDeepEq(`${checkPrefix} User roles`, ["user"], accountInfo.user.roles);
-    jqUnit.assertEquals(`${checkPrefix} User verified`, true, accountInfo.user.verified);
+    jqUnit.assertNotNull(`${checkPrefix} non-null User`, response.user);
+    jqUnit.assertEquals(`${checkPrefix} User id`, mockUserInfo.id, response.user.userId);
+    jqUnit.assertNotNull(`${checkPrefix} User name`, response.user.name);
+    jqUnit.assertNotNull(`${checkPrefix} User email`, response.user.email);
+    jqUnit.assertNotNull(`${checkPrefix} User username`, response.user.username);
+    jqUnit.assertDeepEq(`${checkPrefix} User roles`, ["user"], response.user.roles);
+    jqUnit.assertEquals(`${checkPrefix} User verified`, true, response.user.verified);
 
     // Spot check aspect of the AppSsoProvider record
-    jqUnit.assertNotNull(`${checkPrefix} non-null AppSsoProvider`, accountInfo.appSsoProvider);
-    jqUnit.assertEquals(`${checkPrefix} AppSsoProvider provider`, ssoOptions.provider, accountInfo.appSsoProvider.provider);
+    jqUnit.assertNotNull(`${checkPrefix} non-null AppSsoProvider`, response.appSsoProvider);
+    jqUnit.assertEquals(`${checkPrefix} AppSsoProvider provider`, ssoOptions.provider, response.appSsoProvider.provider);
 
     // Similarly, the SsoAccount record
-    jqUnit.assertNotNull(`${checkPrefix} non-null SsoAccount`, accountInfo.ssoAccount);
-    jqUnit.assertEquals(`${checkPrefix} SsoAccount user`, mockUserInfo.id, accountInfo.ssoAccount.user);
-    jqUnit.assertDeepEq(`${checkPrefix} SsoAccount userInfo`, mockUserInfo, accountInfo.ssoAccount.userInfo);
+    jqUnit.assertNotNull(`${checkPrefix} non-null SsoAccount`, response.ssoAccount);
+    jqUnit.assertEquals(`${checkPrefix} SsoAccount user`, mockUserInfo.id, response.ssoAccount.user);
+    jqUnit.assertDeepEq(`${checkPrefix} SsoAccount userInfo`, mockUserInfo, response.ssoAccount.userInfo);
 
     // Similarly spot check aspects of the AccessToken record
-    jqUnit.assertNotNull(`${checkPrefix} non-null AccessToken`, accountInfo.accessToken);
-    jqUnit.assertEquals(`${checkPrefix} AccessToken accessToken`, mockAccessToken.access_token, accountInfo.accessToken.accessToken);
-    jqUnit.assertEquals(`${checkPrefix} AccessToken refreshToken`, mockAccessToken.refresh_token, accountInfo.accessToken.refreshToken);
-    jqUnit.assertNotNull(`${checkPrefix} AccessToken expiresAt`, accountInfo.accessToken.expiresAt);
-    jqUnit.assertNotNull(`${checkPrefix} AccessToken loginToken`, accountInfo.accessToken.loginToken);
+    jqUnit.assertNotNull(`${checkPrefix} non-null AccessToken`, response.accessToken);
+    jqUnit.assertEquals(`${checkPrefix} AccessToken accessToken`, mockAccessToken.access_token, response.accessToken.accessToken);
+    jqUnit.assertEquals(`${checkPrefix} AccessToken refreshToken`, mockAccessToken.refresh_token, response.accessToken.refreshToken);
+    jqUnit.assertNotNull(`${checkPrefix} AccessToken expiresAt`, response.accessToken.expiresAt);
+    jqUnit.assertNotNull(`${checkPrefix} AccessToken loginToken`, response.accessToken.loginToken);
+};
+
+fluid.tests.googleSso.testStoreUserAndAccessTokenInDb = async function (ssoDbOps, testPoint, userId, expectedProviderId, expectedUserInfo, expectedAccessToken) {
+    const checkPrefix = `Check '${testPoint}' in DB: `;
+
+    // Check saved user info
+    const ssoAccountInfo = await ssoDbOps.runSql(`SELECT * FROM "SsoAccount" WHERE "user"='${userId}' AND "provider"='${expectedProviderId}';`);
+    jqUnit.assertEquals(`${checkPrefix} User id`, expectedUserInfo.id, ssoAccountInfo.rows[0].userInfo.id);
+    jqUnit.assertEquals(`${checkPrefix} Provider id`, expectedProviderId, ssoAccountInfo.rows[0].provider);
+    jqUnit.assertDeepEq(`${checkPrefix} User info`, expectedUserInfo, ssoAccountInfo.rows[0].userInfo);
+
+    const updatedAccessToken = await ssoDbOps.runSql(`
+        SELECT * FROM "AccessToken" WHERE
+            "ssoAccount"=${ssoAccountInfo.rows[0].ssoAccountId} AND
+            "ssoProvider"=${expectedProviderId};
+    `);
+    jqUnit.assertEquals(`${checkPrefix} Access token`, expectedAccessToken.access_token, updatedAccessToken.rows[0].accessToken);
+    jqUnit.assertEquals(`${checkPrefix} Refresh token`, expectedAccessToken.refresh_token, updatedAccessToken.rows[0].refreshToken);
+    jqUnit.assertNotNull(`${checkPrefix} Expires at`, updatedAccessToken.rows[0].expiresAt);
 };
 
 fluid.tests.deleteTestUser = async function (userId, ssoDbOps) {
