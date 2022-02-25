@@ -27,7 +27,7 @@ const options = {
     accessTokenUri: "https://accounts.google.com/o/oauth2/token",
     accessType: "offline",
 
-    // Google user endpoints.
+    // Google get user info endpoints.
     userInfoUri: "https://www.googleapis.com/oauth2/v2/userinfo",
 
     // Google "use access token endpoint"
@@ -88,23 +88,24 @@ class GoogleSso {
      */
     async handleCallback(req, ssoDbOps, options) {
         try {
+            if (req.query.error) {
+                throw new Error("The user does not approve the request. Error: " + req.query.error);
+            }
             if (!req.query.code) {
                 throw new Error("Request missing authorization code");
             }
+
             const accessTokenResponse = await this.fetchAccessToken(req.query.code, ssoDbOps, options);
             if (accessTokenResponse.status !== 200) {
                 return accessTokenResponse;
             }
             const accessToken = await accessTokenResponse.data;
-            console.debug("ACCESS TOKEN: ", JSON.stringify(accessToken, null, 2));
             const userInfoResponse = await this.fetchUserInfo(accessToken, options);
             if (userInfoResponse.status !== 200) {
                 return userInfoResponse;
             }
             const userInfo = userInfoResponse.data;
-            console.debug("USER INFO: ", JSON.stringify(userInfo, null, 2));
             const accountInfo = await this.storeUserAndAccessToken(userInfo, accessToken, ssoDbOps, options);
-            console.debug(accountInfo);
             return accountInfo.accessToken.loginToken;
         } catch (e) {
             throw e;
@@ -138,8 +139,7 @@ class GoogleSso {
                     code: code,
                     redirect_uri: options.redirectUri,
                     client_id: clientInfo.client_id,
-                    client_secret: clientInfo.client_secret,
-                    access_type: options.access_type
+                    client_secret: clientInfo.client_secret
                 },
                 "Content-type": "application/json"
             });

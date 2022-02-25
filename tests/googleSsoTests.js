@@ -40,6 +40,9 @@ const mockAccessToken = {
     refresh_token: "anotherRandomString"
 };
 
+// The mock code returned via the redirect URI
+const mockAuthCode = "mock-auth-code";
+
 // Possible errors are "invalid_request", "invalid_client", "invalid_grant".
 // "unauthorized_client", "unsupported_grant_type", or "invalid_scope".
 // However, the status code is "400 Bad Request" for all of them -- use same
@@ -65,7 +68,7 @@ const mockUserInfo = {
 let authPayload;
 
 jqUnit.test("Google SSO tests", async function () {
-    jqUnit.expect(skipDocker ? 38 : 40);
+    jqUnit.expect(skipDocker ? 41 : 43);
     let serverStatus, response;
 
     if (!skipDocker) {
@@ -103,6 +106,16 @@ jqUnit.test("Google SSO tests", async function () {
     response = await fluid.tests.googleSso.sendAuthRequest(serverUrl, "/sso/google");
     fluid.tests.googleSso.testResponse(response, 200, {}, "/sso/google");
 
+    // Test the successful workflow of "/sso/google/login/callback"
+    fluid.tests.setupMockResponsesForCallback(googleSso.options);
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + mockAuthCode);
+    jqUnit.assertNotNull("loginToken is returned", response.data.loginToken);
+
+    // Delete the test user -- this will cascade and delete the associated SsoAccount and AccessToken.
+    response = await fluid.tests.deleteTestUser(mockUserInfo.id, ssoDbOps);
+    jqUnit.assertNotNull(`Checking deletion of mock user ${mockUserInfo.id}`, response);
+
+    // Unit tests of individual functions
     // Test successful GoogleSso.fetchAccessToken() with mock /token endpoint
     response = await fluid.tests.googleSso.fetchAccessToken(googleSso, authPayload.code, ssoDbOps, googleSso.options, 200);
     fluid.tests.googleSso.testResponse(response, 200, mockAccessToken, "googleSso.fetchAccessToken(/token)");
@@ -127,9 +140,9 @@ jqUnit.test("Google SSO tests", async function () {
     response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback");
     fluid.tests.googleSso.testResponse(response, 403, {"isError": true, "message": "Request missing authorization code"}, "/sso/google/login/callback");
 
-    // Delete the test user -- this will cascade and delete the associated SsoAccount and AccessToken.
-    response = await fluid.tests.deleteTestUser(mockUserInfo.id, ssoDbOps);
-    jqUnit.assertNotNull(`Checking deletion of mock user ${mockUserInfo.id}`, response);
+    // Test failure of "/sso/google/login/callback" -- when an error message is returned by Google
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?error=access_denied");
+    fluid.tests.googleSso.testResponse(response, 403, {"isError": true, "message": "The user does not approve the request. Error: access_denied"}, "/sso/google/login/callback");
 
     if (!skipDocker) {
         // Stop the docker container for the database
@@ -178,6 +191,28 @@ fluid.tests.googleSso.testStoreUserAndAccessToken = function (accountInfo, testP
     jqUnit.assertNotNull(`${checkPrefix} AccessToken loginToken`, accountInfo.accessToken.loginToken);
 };
 
+fluid.tests.setupMockResponsesForCallback = function (options) {
+    // Mock Google's get access token endpoint.
+    const accessTokenURL = new url.URL(options.accessTokenUri);
+    nock(accessTokenURL.origin)
+        .post(accessTokenURL.pathname, {
+            grant_type: "authorization_code",
+            code: mockAuthCode,
+            redirect_uri: options.redirectUri,
+            client_id: "554291169960-repqllu9q9h5loog0hpadr6854fb2oq0.apps.dummy.com",
+            client_secret: "ek1k4RNTao8XY6gAmmOXxJ6m"
+        })
+        .reply(200, mockAccessToken);
+
+
+    // Mock Google's get user info endpoint.
+    const userInfoURL = new url.URL(options.userInfoUri);
+    nock(userInfoURL.origin)
+        .get(userInfoURL.pathname)
+        .query(true)
+        .reply(200, mockUserInfo);
+};
+
 fluid.tests.googleSso.sendAuthRequest = async function (serverUrl, endpoint) {
     // Mock Google's OAuth2 endpoint.  The request payload is stored in `authPayload` for subsequent tests.
     nock("https://accounts.google.com")
@@ -188,6 +223,7 @@ fluid.tests.googleSso.sendAuthRequest = async function (serverUrl, endpoint) {
         })
         .reply(200, {});
 
+    // Send the auth request which uses the mock response.
     console.debug("- Sending '%s'", endpoint);
     try {
         return await axios.get(serverUrl + endpoint);
