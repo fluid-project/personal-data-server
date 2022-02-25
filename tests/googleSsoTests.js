@@ -68,7 +68,7 @@ const mockUserInfo = {
 let authPayload;
 
 jqUnit.test("Google SSO tests", async function () {
-    jqUnit.expect(skipDocker ? 41 : 43);
+    jqUnit.expect(skipDocker ? 43 : 45);
     let serverStatus, response;
 
     if (!skipDocker) {
@@ -110,6 +110,13 @@ jqUnit.test("Google SSO tests", async function () {
     fluid.tests.setupMockResponsesForCallback(googleSso.options);
     response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + mockAuthCode);
     jqUnit.assertNotNull("loginToken is returned", response.data.loginToken);
+
+    // Test the failed workflow of "/sso/google/login/callback" - mismatched anti-forgery parameter
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?state=wrongState");
+    fluid.tests.googleSso.testResponse(response, 403, {
+        isError: true,
+        message: "Mismatched anti-forgery parameter"
+    }, "/sso/google/login/callback?state=wrongState");
 
     // Delete the test user -- this will cascade and delete the associated SsoAccount and AccessToken.
     response = await fluid.tests.deleteTestUser(mockUserInfo.id, ssoDbOps);
@@ -161,34 +168,23 @@ fluid.tests.googleSso.testResponse = function (response, expectedStatus, expecte
     jqUnit.assertDeepEq("Check '" + endPoint + "' result", expected, response.data);
 };
 
-fluid.tests.googleSso.testStoreUserAndAccessToken = function (accountInfo, testPoint, ssoOptions) {
-    const checkPrefix = `Check '${testPoint}'`;
-    jqUnit.assertNotNull(`${checkPrefix} non-null result`, accountInfo);
+fluid.tests.googleSso.sendAuthRequest = async function (serverUrl, endpoint) {
+    // Mock Google's OAuth2 endpoint.  The request payload is stored in `authPayload` for subsequent tests.
+    nock("https://accounts.google.com")
+        .get("/o/oauth2/auth")
+        .query(function (payload) {
+            authPayload = payload;
+            return true;
+        })
+        .reply(200, {});
 
-    // Spot check parts of the User record that can be tested
-    jqUnit.assertNotNull(`${checkPrefix} non-null User`, accountInfo.user);
-    jqUnit.assertEquals(`${checkPrefix} User id`, mockUserInfo.id, accountInfo.user.userId);
-    jqUnit.assertEquals(`${checkPrefix} User name`, mockUserInfo.name, accountInfo.user.name);
-    jqUnit.assertEquals(`${checkPrefix} User email`, mockUserInfo.email, accountInfo.user.email);
-    jqUnit.assertEquals(`${checkPrefix} User username`, mockUserInfo.email, accountInfo.user.username);
-    jqUnit.assertDeepEq(`${checkPrefix} User roles`, ["user"], accountInfo.user.roles);
-    jqUnit.assertEquals(`${checkPrefix} User verified`, true, accountInfo.user.verified);
-
-    // Spot check aspect of the AppSsoProvider record
-    jqUnit.assertNotNull(`${checkPrefix} non-null AppSsoProvider`, accountInfo.appSsoProvider);
-    jqUnit.assertEquals(`${checkPrefix} AppSsoProvider provider`, ssoOptions.provider, accountInfo.appSsoProvider.provider);
-
-    // Similarly, the SsoAccount record
-    jqUnit.assertNotNull(`${checkPrefix} non-null SsoAccount`, accountInfo.ssoAccount);
-    jqUnit.assertEquals(`${checkPrefix} SsoAccount user`, mockUserInfo.id, accountInfo.ssoAccount.user);
-    jqUnit.assertDeepEq(`${checkPrefix} SsoAccount userInfo`, mockUserInfo, accountInfo.ssoAccount.userInfo);
-
-    // Similarly spot check aspects of the AccessToken record
-    jqUnit.assertNotNull(`${checkPrefix} non-null AccessToken`, accountInfo.accessToken);
-    jqUnit.assertEquals(`${checkPrefix} AccessToken accessToken`, mockAccessToken.access_token, accountInfo.accessToken.accessToken);
-    jqUnit.assertEquals(`${checkPrefix} AccessToken refreshToken`, mockAccessToken.refresh_token, accountInfo.accessToken.refreshToken);
-    jqUnit.assertNotNull(`${checkPrefix} AccessToken expiresAt`, accountInfo.accessToken.expiresAt);
-    jqUnit.assertNotNull(`${checkPrefix} AccessToken loginToken`, accountInfo.accessToken.loginToken);
+    // Send the auth request which uses the mock response.
+    console.debug("- Sending '%s'", endpoint);
+    try {
+        return await axios.get(serverUrl + endpoint);
+    } catch (e) {
+        return e.response;
+    }
 };
 
 fluid.tests.setupMockResponsesForCallback = function (options) {
@@ -213,31 +209,12 @@ fluid.tests.setupMockResponsesForCallback = function (options) {
         .reply(200, mockUserInfo);
 };
 
-fluid.tests.googleSso.sendAuthRequest = async function (serverUrl, endpoint) {
-    // Mock Google's OAuth2 endpoint.  The request payload is stored in `authPayload` for subsequent tests.
-    nock("https://accounts.google.com")
-        .get("/o/oauth2/auth")
-        .query(function (payload) {
-            authPayload = payload;
-            return true;
-        })
-        .reply(200, {});
-
-    // Send the auth request which uses the mock response.
-    console.debug("- Sending '%s'", endpoint);
-    try {
-        return await axios.get(serverUrl + endpoint);
-    } catch (e) {
-        return e.response;
-    }
-};
-
-fluid.tests.googleSso.fetchAccessToken = function (googleSso, code, ssoDbOps, options, responseStatus) {
+fluid.tests.googleSso.fetchAccessToken = function (googleSso, code, ssoDbOps, options, responseCode) {
     let mockResponse;
-    switch (responseStatus) {
+    switch (responseCode) {
     case 200:
         mockResponse = {
-            status: responseStatus,
+            status: responseCode,
             body: mockAccessToken
         };
         break;
@@ -256,12 +233,12 @@ fluid.tests.googleSso.fetchAccessToken = function (googleSso, code, ssoDbOps, op
     return googleSso.fetchAccessToken(code, ssoDbOps, options);
 };
 
-fluid.tests.googleSso.fetchUserInfo = function (googleSso, accessToken, options, responseStatus) {
+fluid.tests.googleSso.fetchUserInfo = function (googleSso, accessToken, options, responseCode) {
     let mockResponse;
-    switch (responseStatus) {
+    switch (responseCode) {
     case 200:
         mockResponse = {
-            status: responseStatus,
+            status: responseCode,
             body: mockUserInfo
         };
         break;
@@ -290,6 +267,36 @@ fluid.tests.googleSso.storeUserAndAccessToken = async function (googleSso, ssoDb
     } catch (error) {
         console.debug(error.message);
     }
+};
+
+fluid.tests.googleSso.testStoreUserAndAccessToken = function (accountInfo, testPoint, ssoOptions) {
+    const checkPrefix = `Check '${testPoint}'`;
+    jqUnit.assertNotNull(`${checkPrefix} non-null result`, accountInfo);
+
+    // Spot check parts of the User record that can be tested
+    jqUnit.assertNotNull(`${checkPrefix} non-null User`, accountInfo.user);
+    jqUnit.assertEquals(`${checkPrefix} User id`, mockUserInfo.id, accountInfo.user.userId);
+    jqUnit.assertEquals(`${checkPrefix} User name`, mockUserInfo.name, accountInfo.user.name);
+    jqUnit.assertEquals(`${checkPrefix} User email`, mockUserInfo.email, accountInfo.user.email);
+    jqUnit.assertEquals(`${checkPrefix} User username`, mockUserInfo.email, accountInfo.user.username);
+    jqUnit.assertDeepEq(`${checkPrefix} User roles`, ["user"], accountInfo.user.roles);
+    jqUnit.assertEquals(`${checkPrefix} User verified`, true, accountInfo.user.verified);
+
+    // Spot check aspect of the AppSsoProvider record
+    jqUnit.assertNotNull(`${checkPrefix} non-null AppSsoProvider`, accountInfo.appSsoProvider);
+    jqUnit.assertEquals(`${checkPrefix} AppSsoProvider provider`, ssoOptions.provider, accountInfo.appSsoProvider.provider);
+
+    // Similarly, the SsoAccount record
+    jqUnit.assertNotNull(`${checkPrefix} non-null SsoAccount`, accountInfo.ssoAccount);
+    jqUnit.assertEquals(`${checkPrefix} SsoAccount user`, mockUserInfo.id, accountInfo.ssoAccount.user);
+    jqUnit.assertDeepEq(`${checkPrefix} SsoAccount userInfo`, mockUserInfo, accountInfo.ssoAccount.userInfo);
+
+    // Similarly spot check aspects of the AccessToken record
+    jqUnit.assertNotNull(`${checkPrefix} non-null AccessToken`, accountInfo.accessToken);
+    jqUnit.assertEquals(`${checkPrefix} AccessToken accessToken`, mockAccessToken.access_token, accountInfo.accessToken.accessToken);
+    jqUnit.assertEquals(`${checkPrefix} AccessToken refreshToken`, mockAccessToken.refresh_token, accountInfo.accessToken.refreshToken);
+    jqUnit.assertNotNull(`${checkPrefix} AccessToken expiresAt`, accountInfo.accessToken.expiresAt);
+    jqUnit.assertNotNull(`${checkPrefix} AccessToken loginToken`, accountInfo.accessToken.loginToken);
 };
 
 fluid.tests.deleteTestUser = async function (userId, ssoDbOps) {

@@ -53,20 +53,20 @@ router.get("/google/login/callback", function (req, res) {
         const msg = "Mismatched anti-forgery parameter";
         console.log(`${msg}: expected: '%s', actual: '%s'`, req.session.secret, req.query.state);
         res.status(403).json({"isError": true, "message": msg});
+        return;
     }
     // Anti-forgery check passed -- handle the callback from Google.
-    googleSso.handleCallback(req, ssoDbOps, googleSso.options)
-        .then((loginToken) => {
-            // Finished SSO, forget state secret (needed?)
-            req.query.state = "shhhh";
-            req.session.staticToken = loginToken;
+    googleSso.handleCallback(req, ssoDbOps, googleSso.options).then((loginToken) => {
+        // Finished SSO, forget state secret (needed?)
+        req.query.state = "shhhh";
+        req.session.staticToken = loginToken;
 
-            // TODO: The response here is just for debugging/testing. Replace
-            // with a simple 200 status code, with no payload (?)
-            res.json({"loginToken": JSON.stringify(req.session.staticToken, null, 2)});
-        }).catch((error) => {
-            res.status(403).json({"isError": true, "message": error.message});
-        });
+        // TODO: The response here is just for debugging/testing. Replace
+        // with a simple 200 status code, with no payload (?)
+        res.json({"loginToken": JSON.stringify(req.session.staticToken, null, 2)});
+    }).catch((error) => {
+        res.status(403).json({"isError": true, "message": error.message});
+    });
 });
 
 module.exports = router;
