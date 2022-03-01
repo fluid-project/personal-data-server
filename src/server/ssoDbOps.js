@@ -134,7 +134,7 @@ class DataBaseRequest extends postgresOps.postgresOps {
     async addSsoAccount(userRecord, userInfo, provider) {
         const clientInfo = await this.getSsoClientInfo(provider);
         let ssoAccountRecords = await this.runSql(
-            `SELECT * FROM "SsoAccount" WHERE "user"='${userRecord.userId}';`
+            `SELECT * FROM "SsoAccount" WHERE "user"='${userRecord.userId}' AND "provider"='${clientInfo.providerId}';`
         );
         if (ssoAccountRecords.rowCount === 0) {
             const results = await this.loadFromJSON("SsoAccount", [{
@@ -149,7 +149,7 @@ class DataBaseRequest extends postgresOps.postgresOps {
             const userInfoStr = JSON.stringify(userInfo);
             ssoAccountRecords = await this.runSql(`
                 UPDATE "SsoAccount"
-                    SET "user"='${userRecord.userId}', provider=${clientInfo.providerId}, "userInfo"='${userInfoStr}'
+                    SET "userInfo"='${userInfoStr}'
                     WHERE "ssoAccountId"=${accountId}
                     RETURNING *;
             `);
