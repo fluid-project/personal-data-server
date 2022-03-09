@@ -21,7 +21,8 @@ git clone https://github.com/your-username/personal-data-server
 ```
 
 * Obtain Google OAuth 2.0 client credentials from the [Google API Console](https://console.developers.google.com/).
-See instructions about [setting up Google OAuth 2.0](https://support.google.com/googleapi/answer/6158849?hl=en).
+  See [Google Authentication Registration](./docs/GoogleSsoRegistration.md) for more details.
+
 * From the root of the cloned project, run commands below to create `dataModel/SsoProvidersData.sql`
 
 ```bash
@@ -113,7 +114,7 @@ The [`/scripts`](./scripts) folder has helper scripts for performing individual 
 * Load data into the database in the Postgres docker container
 * Drop the database in the Postgres docker container
 
-The documentation for helper scripts can be found in the [`/doc`](./docs/HelperScripts.md) folder.
+The documentation for helper scripts can be found in the [`/docs`](./docs/HelperScripts.md) folder.
 
 ## FAQ
 
