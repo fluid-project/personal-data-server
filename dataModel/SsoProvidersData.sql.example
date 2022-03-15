@@ -11,9 +11,10 @@
 
 -- Note that this is a dummy client id and secret for testing Google SSO
 
-INSERT INTO "AppSsoProvider" (provider, name, client_id, client_secret) VALUES (
+INSERT INTO sso_provider (provider, name, client_id, client_secret, created_timestamp) VALUES (
     'google',
     'Google',
     '554291169960-repqllu9q9h5loog0hpadr6854fb2oq0.apps.dummy.com',
-    'ek1k4RNTao8XY6gAmmOXxJ6m'
+    'ek1k4RNTao8XY6gAmmOXxJ6m',
+    current_timestamp
 ) RETURNING *;

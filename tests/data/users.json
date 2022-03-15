@@ -1,6 +1,6 @@
 [
     {
-        "userId": "org.idrc.user:admin",
+        "user_id": "org.idrc.user:admin",
         "iterations": 10,
         "username": "admin",
         "name": "admin",
@@ -12,7 +12,7 @@
         "verification_code": "DE74AAF3-2A0F-47A3-BBC6-5A1FD2A9A6BE"
     },
     {
-        "userId": "org.idrc.user:nonadmin",
+        "user_id": "org.idrc.user:nonadmin",
         "iterations": 9,
         "username": "nonadmin",
         "name": "nonadmin",
@@ -24,7 +24,7 @@
         "verification_code": "A26188D7-ED62-4205-9492-9F2E12EA7496"
     },
     {
-        "userId": "org.idrc.user:unverified",
+        "user_id": "org.idrc.user:unverified",
         "iterations": 8,
         "name": "unverified",
         "username": "unverified",

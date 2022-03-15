@@ -56,14 +56,14 @@ router.get("/google/login/callback", function (req, res) {
         return;
     }
     // Anti-forgery check passed -- handle the callback from Google.
-    googleSso.handleCallback(req, ssoDbOps, googleSso.options).then((loginToken) => {
+    googleSso.handleCallback(req, ssoDbOps, googleSso.options).then((accessToken) => {
         // Finished SSO, forget state secret (needed?)
         req.query.state = "shhhh";
-        req.session.staticToken = loginToken;
+        req.session.staticToken = accessToken;
 
         // TODO: The response here is just for debugging/testing. Replace
         // with a simple 200 status code, with no payload (?)
-        res.json({"loginToken": JSON.stringify(req.session.staticToken, null, 2)});
+        res.json({"accessToken": JSON.stringify(req.session.staticToken, null, 2)});
     }).catch((error) => {
         res.status(403).json({"isError": true, "message": error.message});
     });

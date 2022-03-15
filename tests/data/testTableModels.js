@@ -36,7 +36,7 @@ fluid.tests.dbOps.tableDefinitions = `
         text TEXT
     );
     CREATE TABLE "${fluid.tests.dbOps.tableNames[3]}" (
-        "userId" VARCHAR(64) PRIMARY KEY NOT NULL,
+        "user_id" VARCHAR(64) PRIMARY KEY NOT NULL,
         name VARCHAR(64) NOT NULL,
         username VARCHAR(64) NOT NULL,
         derived_key VARCHAR(255) NOT NULL,

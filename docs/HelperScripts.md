@@ -88,7 +88,7 @@ node ./scripts/runSql.js --db personalData --host localhost --port 5432 --user a
 * Example to execute a SQL statement:
 
 ```bash
-node ./scripts/runSql.js --db personalData --host localhost --port 5432 --user admin --password asecretpassword --sql "truncate table \"AppSsoProvider\" CASCADE"
+node ./scripts/runSql.js --db personalData --host localhost --port 5432 --user admin --password asecretpassword --sql "truncate table sso_provider CASCADE"
 ```
 
 ## Drop Database
