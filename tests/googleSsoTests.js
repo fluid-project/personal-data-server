@@ -313,11 +313,11 @@ fluid.tests.googleSso.testStoreUserAndAccessToken = async function (response, ss
     jqUnit.assertNotNull(`${checkPrefix} sso_user_account.created_timestamp`, ssoUserAccountRecord.rows[0].created_timestamp);
     jqUnit[isUpdate ? "assertNotNull" : "assertNull"](`${checkPrefix} sso_user_account.last_updated_timestamp`, ssoUserAccountRecord.rows[0].last_updated_timestamp);
 
-    // Check pds_user record in the database
-    const userRecord = await ssoDbOps.runSql(`SELECT * FROM pds_user WHERE user_id='${ssoUserAccountRecord.rows[0].user_id}';`);
-    jqUnit.assertDeepEq(`${checkPrefix} pds_user.preferences`, ssoOptions.defaultPreferences, userRecord.rows[0].preferences);
-    jqUnit.assertNotNull(`${checkPrefix} pds_user.created_timestamp`, userRecord.rows[0].created_timestamp);
-    jqUnit.assertNull(`${checkPrefix} pds_user.last_updated_timestamp`, userRecord.rows[0].last_updated_timestamp);
+    // Check local_user record in the database
+    const userRecord = await ssoDbOps.runSql(`SELECT * FROM local_user WHERE user_id='${ssoUserAccountRecord.rows[0].user_id}';`);
+    jqUnit.assertDeepEq(`${checkPrefix} local_user.preferences`, ssoOptions.defaultPreferences, userRecord.rows[0].preferences);
+    jqUnit.assertNotNull(`${checkPrefix} local_user.created_timestamp`, userRecord.rows[0].created_timestamp);
+    jqUnit.assertNull(`${checkPrefix} local_user.last_updated_timestamp`, userRecord.rows[0].last_updated_timestamp);
 
     // Check access_token record in the database
     const accessTokenRecord = await ssoDbOps.runSql(`SELECT * FROM access_token WHERE sso_user_account_id='${response.sso_user_account_id}';`);
@@ -329,7 +329,7 @@ fluid.tests.googleSso.testStoreUserAndAccessToken = async function (response, ss
 };
 
 fluid.tests.cleanUpDb = async function (ssoDbOps) {
-    console.debug("- Truncate tables: pds_user, sso_user_account, access_token");
-    const deleteResult = await ssoDbOps.runSql("TRUNCATE TABLE pds_user CASCADE;");
+    console.debug("- Truncate tables: local_user, sso_user_account, access_token");
+    const deleteResult = await ssoDbOps.runSql("TRUNCATE TABLE local_user CASCADE;");
     return deleteResult;
 };

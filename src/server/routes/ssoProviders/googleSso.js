@@ -43,7 +43,7 @@ const options = {
     provider: "google",
 
     // Default user preferences.
-    // TODO: This is a hardcoded value to temporarily fill up the value of `pds_user.preferences`.
+    // TODO: This is a hardcoded value to temporarily fill up the value of `local_user.preferences`.
     // It will not be needed when the workflow of defining user preferences is sorted out.
     defaultPreferences: {
         textSize: 1.2,

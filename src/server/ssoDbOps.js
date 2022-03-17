@@ -56,7 +56,7 @@ class DataBaseRequest extends postgresOps.postgresOps {
     async getSsoClientInfo(provider) {
         try {
             const clientInfo = await this.runSql(`
-                SELECT * FROM "sso_provider" WHERE provider='${provider}';
+                SELECT * FROM sso_provider WHERE provider='${provider}';
             `);
             console.log("");
             if (clientInfo.rowCount !== 0) {
@@ -98,7 +98,7 @@ class DataBaseRequest extends postgresOps.postgresOps {
      */
     async createUser(preferences) {
         const userRecord = await this.runSql(`
-            INSERT INTO pds_user ("preferences", "created_timestamp")
+            INSERT INTO local_user ("preferences", "created_timestamp")
             VALUES ('${JSON.stringify(preferences)}', current_timestamp)
             RETURNING *;
         `);
@@ -109,7 +109,7 @@ class DataBaseRequest extends postgresOps.postgresOps {
      * Create a sso_user_account record associated with the given user record, or update an exising sso_user_account.
      * Return an object containing the new record.
      *
-     * @param {Number} userId - The corresponding pds_user.user_id to associate with this new account.
+     * @param {Number} userId - The corresponding local_user.user_id to associate with this new account.
      * @param {Object} userInfo - The user information provided by the SSO provider.
      * @param {String} provider - The SSO provider.
      * @return {Object} An object consisting of the sso user account record.

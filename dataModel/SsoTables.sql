@@ -21,7 +21,7 @@ CREATE TABLE "sso_provider" (
 );
 
 -- user
-CREATE TABLE "pds_user" (
+CREATE TABLE "local_user" (
     "user_id" SERIAL PRIMARY KEY NOT NULL,
     "preferences" JSONB NULL,
     "created_timestamp" TIMESTAMPTZ NOT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE "sso_user_account" (
     "sso_user_account_id" SERIAL PRIMARY KEY NOT NULL,
     "user_id_from_provider" varchar(64) NOT NULL,
     "provider_id" INTEGER NOT NULL REFERENCES "sso_provider" ("provider_id") ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-    "user_id" INTEGER NOT NULL REFERENCES "pds_user" ("user_id") ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    "user_id" INTEGER NOT NULL REFERENCES "local_user" ("user_id") ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
     "user_info" JSONB NOT NULL,
     "created_timestamp" TIMESTAMPTZ NOT NULL,
     "last_updated_timestamp" TIMESTAMPTZ NULL
@@ -47,16 +47,4 @@ CREATE TABLE "access_token" (
     "refresh_token" TEXT DEFAULT NULL,
     "created_timestamp" TIMESTAMPTZ NOT NULL,
     "last_updated_timestamp" TIMESTAMPTZ NULL
-);
-
--- Login tokens generated for SSO accounts
-CREATE TABLE "login_token" (
-    "sso_user_account_id" INTEGER NOT NULL REFERENCES "sso_user_account" ("sso_user_account_id") ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-    "referrer_url" TEXT NOT NULL,
-    "anti_forgery_token" TEXT NOT NULL,
-    "login_token" TEXT NOT NULL,
-    "expires_at" TIMESTAMPTZ NULL,
-    "created_timestamp" TIMESTAMPTZ NOT NULL,
-    "last_updated_timestamp" TIMESTAMPTZ NULL,
-    PRIMARY KEY ("sso_user_account_id", "referrer_url")
 );

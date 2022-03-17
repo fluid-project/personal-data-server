@@ -522,12 +522,12 @@ CREATE TABLE "sso_provider" (
 );
 ```
 
-### pds_user
+### local_user
 
 Records that contains information about personal data server users.  Note that `user` is a reserved keyword in
-PostgresSQL so the table name uses `pds_user` instead of `user`. For now, this table saves two types of information:
+PostgresSQL so the table name uses `local_user` instead of `user`. For now, this table saves two types of information:
 
-1. The linkage between `pds_user` and `sso_user_account` via `user_id` field;
+1. The linkage between `local_user` and `sso_user_account` via `user_id` field;
 2. The user preferences.
 
 | Name                     | Type    | Required?    | Default | Description |
@@ -540,7 +540,7 @@ PostgresSQL so the table name uses `pds_user` instead of `user`. For now, this t
 SQL:
 
 ```postgresql
-CREATE TABLE "pds_user" (
+CREATE TABLE "local_user" (
     "user_id" SERIAL PRIMARY KEY NOT NULL,
     "preferences" JSONB NULL,
     "created_timestamp" TIMESTAMPTZ NOT NULL,
@@ -558,7 +558,7 @@ provider.  As such, they cross reference `user` and `sso_provider` records.
 | sso_user_account_id      | Integer | __Required__ | None    | Primary key. The ID of this record |
 | user_id_from_provider    | String  | __Required__ | None    | The user id provided by the provider via the user information |
 | provider_id              | Integer | __Required__ | None    | Reference to the sso_provider record |
-| user_id                  | Integer | __Required__ | None    | Reference to the pds_user record associated with the SSO user account |
+| user_id                  | Integer | __Required__ | None    | Reference to the local_user record associated with the SSO user account |
 | user_info                | JSONB   | __Required__ | None    | Information returned by the SSO provider about the associated user |
 | `created_timestamp`      | TimeStamp | __Required__ | None    | The timestamp when the record is created |
 | `last_updated_timestamp` | TimeStamp | __Optional__ | None    | The timestamp when the record is last updated |
@@ -570,7 +570,7 @@ CREATE TABLE "sso_user_account" (
     "sso_user_account_id" SERIAL PRIMARY KEY NOT NULL,
     "user_id_from_provider" varchar(64) NOT NULL,
     "provider_id" INTEGER NOT NULL REFERENCES "sso_provider" ("provider_id") ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-    "user_id" INTEGER NOT NULL REFERENCES "pds_user" ("user_id") ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    "user_id" INTEGER NOT NULL REFERENCES "local_user" ("user_id") ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
     "user_info" JSONB NOT NULL,
     "created_timestamp" TIMESTAMPTZ NOT NULL,
     "last_updated_timestamp" TIMESTAMPTZ NULL
