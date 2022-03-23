@@ -75,6 +75,8 @@ can be overridden by a corresponding environment variable.
 | Name        | Default Value | Description | Envionment Variable for Overriding |
 | ----------- | ----------- | ----------- | ----------- |
 | port | 3000 | The port that the server will listen on | SERVERPORT |
+| loginTokenExpiresIn | 86400 | The lifetime of login tokens in second | LOGINTOKENEXPIRESIN |
+| selfDomain | <http://localhost:3000> | The domain that Personal Data Server uses. Referer URL of this domain is not tracked when SSO endpoints are called as the request is not issued externally. Note that the trailing slash should be removed. | |
 
 * Database Configuration
 

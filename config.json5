@@ -3,7 +3,13 @@
     server: {
         // The port that the personal data server will listen to.
         // Can be overridden by the value defined in the environment variable SERVERPORT
-        port: 3000
+        port: 3000,
+        // The lifetime of login tokens in second. The default value is 24 hours.
+        loginTokenExpiresIn: 86400,
+        // The domain that Personal Data Server uses. Referer URL of this domain is not tracked
+        // when SSO endpoints are called as the request is not issued externally.
+        // Note that the trailing slash should be removed.
+        selfDomain: "http://localhost:3000"
     },
 
     // Database configs

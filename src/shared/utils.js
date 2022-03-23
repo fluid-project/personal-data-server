@@ -55,7 +55,9 @@ const loadConfig = function (configFile) {
 
     return {
         server: {
-            port: process.env.SERVERPORT || config.server.port
+            port: process.env.SERVERPORT || config.server.port,
+            loginTokenExpiresIn: process.env.LOGINTOKENEXPIRESIN || config.server.loginTokenExpiresIn,
+            selfDomain: config.server.selfDomain
         },
         db: {
             dbContainerName: config.db.dbContainerName,

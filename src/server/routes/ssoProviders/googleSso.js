@@ -15,7 +15,6 @@
 "use strict";
 
 const axios = require("axios");
-const generateNonce = require("../../../shared/utils.js").generateRandomToken;
 
 const REDIRECT_URI = "http://localhost:3000/sso/google/login/callback";
 
@@ -69,11 +68,13 @@ class GoogleSso {
      * @param {String} options.authorizeUri - Google's authorization endpoint
      * @param {String} options.encodedRedirectUri - The endpoint that Google will call
      * @param {String} options.accessType - The type of access to Google needed for SSO
+     * @param {String} sessionToken - The value used as the request session secret
      *
      */
-    async authorize(req, res, ssoDbOps, options) {
+    async authorize(req, res, ssoDbOps, options, sessionToken) {
+        req.session.secret = sessionToken;
+        // Send the authorize request to the SSO provider
         const clientInfo = await ssoDbOps.getSsoClientInfo(this.options.provider);
-        req.session.secret = generateNonce(12);
         const authRequest = `${options.authorizeUri}?client_id=${clientInfo.client_id}&redirect_uri=${options.encodedRedirectUri}&scope=openid+profile+email&response_type=code&state=${req.session.secret}&access_type=${options.accessType}`;
         console.debug("Google /authorize request: ", authRequest);
         res.redirect(authRequest);
@@ -92,7 +93,7 @@ class GoogleSso {
      * @param {Object} ssoDbOps - Used to update user, access_token, and sso_user_account
      *                             records
      * @param {Object} options - Other options specific to Google SSO
-     * @return {String} - The login token generated for static workflow clients.
+     * @return {String} - The access token record containing the access token returned by the SSO provider.
      */
     async handleCallback(req, ssoDbOps, options) {
         try {
@@ -114,7 +115,7 @@ class GoogleSso {
             }
             const userInfo = userInfoResponse.data;
             const accessTokenRecord = await this.storeUserAndAccessToken(userInfo, accessTokenInfo, ssoDbOps, options.provider, options.defaultPreferences);
-            return accessTokenRecord.access_token;
+            return accessTokenRecord;
         } catch (e) {
             throw e;
         }

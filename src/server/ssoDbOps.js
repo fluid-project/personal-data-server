@@ -91,18 +91,68 @@ class DataBaseRequest extends postgresOps.postgresOps {
     };
 
     /**
+     * Save the mapping between the session token and the referer origin in the table for future look up
+     * of the referer origin.
+     *
+     * @param {String} sessionToken - The session token.
+     * @param {String} refererOrigin - The referer origin. An example is: https://idrc.ocadu.ca
+     * @param {String} refererUrl - The referer URL. An example is: https://idrc.ocadu.ca/about/
+     * @return {Object|null} the newly created record.
+     */
+    async trackRefererOrigin(sessionToken, refererOrigin, refererUrl) {
+        const newRecord = await this.runSql(`
+            INSERT INTO referer_tracker ("session_token", "referer_origin", "referer_url", "created_timestamp")
+            VALUES ('${sessionToken}', '${refererOrigin}', '${refererUrl}', current_timestamp)
+            RETURNING *;
+        `);
+
+        return newRecord.rows[0];
+    };
+
+    /**
+     * Get the referer origin of the given session token.
+     *
+     * @param {String} sessionToken - The session token.
+     * @return {String} return the referer origin linked with the given session token. Return null if the record
+     * is not found.
+     */
+    async getRefererBySessionToken(sessionToken) {
+        const refererRecord = await this.runSql(`
+            SELECT * FROM referer_tracker WHERE session_token = '${sessionToken}';
+        `);
+
+        return refererRecord.rowCount > 0 ? refererRecord.rows[0] : null;
+    };
+
+    /**
+     * Save the mapping between the session token and the referer origin in the table for future look up
+     * of the referer origin.
+     *
+     * @param {String} sessionToken - The session token.
+     * @return {Boolean} return true if the record is deleted. Otherwise, return false.
+     */
+    async deleteRefererOriginBySessionToken(sessionToken) {
+        const refererOriginRecord = await this.runSql(`
+            DELETE FROM referer_tracker WHERE session_token = '${sessionToken}' RETURNING *;
+        `);
+
+        return refererOriginRecord.rowCount > 0;
+    };
+
+    /**
      * Create a user record. The preferences uses a mock constant for now.
      *
      * @param {Object} preferences - The user preferences.
      * @return {Object} the newly created record.
      */
     async createUser(preferences) {
-        const userRecord = await this.runSql(`
+        const newRecord = await this.runSql(`
             INSERT INTO local_user ("preferences", "created_timestamp")
             VALUES ('${JSON.stringify(preferences)}', current_timestamp)
             RETURNING *;
         `);
-        return userRecord.rows[0];
+
+        return newRecord.rows[0];
     };
 
     /**
@@ -115,7 +165,7 @@ class DataBaseRequest extends postgresOps.postgresOps {
      * @return {Object} An object consisting of the sso user account record.
      */
     async createSsoUserAccount(userId, userInfo, provider) {
-        const ssoAccountRecord = await this.runSql(`
+        const newRecord = await this.runSql(`
             INSERT INTO sso_user_account (user_id_from_provider, provider_id, user_id, user_info, created_timestamp)
             SELECT '${userInfo.id}', provider_id, '${userId}', '${JSON.stringify(userInfo)}', current_timestamp
             FROM sso_provider
@@ -123,7 +173,7 @@ class DataBaseRequest extends postgresOps.postgresOps {
             RETURNING *;
         `);
 
-        return ssoAccountRecord.rows[0];
+        return newRecord.rows[0];
     };
 
     /**
@@ -154,13 +204,13 @@ class DataBaseRequest extends postgresOps.postgresOps {
     async createAccessToken(ssoUserAccountId, accessTokenInfo) {
         const expiryTimestamp = utils.calculateExpiredInTimestamp(accessTokenInfo.expires_in);
 
-        const accessTokenRecord = await this.runSql(`
+        const newRecord = await this.runSql(`
             INSERT INTO access_token (sso_user_account_id, access_token, expires_at, refresh_token, created_timestamp)
             VALUES (${ssoUserAccountId}, '${accessTokenInfo.access_token}', '${expiryTimestamp.toISOString()}', '${accessTokenInfo.refresh_token}', current_timestamp)
             RETURNING *;
         `);
 
-        return accessTokenRecord.rows[0];
+        return newRecord.rows[0];
     };
 
     /**
@@ -184,6 +234,65 @@ class DataBaseRequest extends postgresOps.postgresOps {
         `);
 
         return accessTokenRecord.rows[0];
+    };
+
+    /**
+     * Get a login_token record of a SSO user account for a referer origin.
+     *
+     * @param {Number} ssoUserAccountId - The sso user account id that the login token record is created for.
+     * @param {Object} refererOrigin - The referer origin where the SSO user sends the request from.
+     * @return {Object} An object consisting of the login token record.
+     */
+    async getLoginToken(ssoUserAccountId, refererOrigin) {
+        const loginTokenRecord = await this.runSql(`
+            SELECT * FROM login_token
+            WHERE sso_user_account_id = ${ssoUserAccountId}
+            AND referer_origin = '${refererOrigin}'
+        `);
+
+        return loginTokenRecord.rows[0];
+    };
+
+    /**
+     * Create a login_token record. Return an object containing the saved record.
+     *
+     * @param {Number} ssoUserAccountId - The sso user account id that the login token record is created for.
+     * @param {Object} refererOrigin - The referer origin where the SSO user sends the request from.
+     * @param {Object} loginToken - The login token.
+     * @param {Object} expiresAt - The timestamp that the login token expires at.
+     * @return {Object} An object consisting of the login token record.
+     */
+    async createLoginToken(ssoUserAccountId, refererOrigin, loginToken, expiresAt) {
+        const newRecord = await this.runSql(`
+            INSERT INTO login_token ("sso_user_account_id", "referer_origin", "login_token", "expires_at", "created_timestamp")
+            VALUES (${ssoUserAccountId}, '${refererOrigin}', '${loginToken}', '${expiresAt.toISOString()}', current_timestamp)
+            RETURNING *;
+        `);
+
+        return newRecord.rows[0];
+    };
+
+    /**
+     * Update a login_token record. Return an object containing the updated record.
+     *
+     * @param {Number} ssoUserAccountId - The sso user account id that the login token record is created for.
+     * @param {Object} refererOrigin - The referer origin where the SSO user sends the request from.
+     * @param {Object} loginToken - The login token.
+     * @param {Object} expiresAt - The timestamp that the login token expires at.
+     * @return {Object} An object consisting of the login token record.
+     */
+    async updateLoginToken(ssoUserAccountId, refererOrigin, loginToken, expiresAt) {
+        const loginTokenRecord = await this.runSql(`
+            UPDATE login_token
+            SET login_token = '${loginToken}',
+                expires_at = '${expiresAt.toISOString()}',
+                last_updated_timestamp = current_timestamp
+            WHERE sso_user_account_id = ${ssoUserAccountId}
+            AND referer_origin = '${refererOrigin}'
+            RETURNING *;
+        `);
+
+        return loginTokenRecord.rows[0];
     };
 };
 
