@@ -12,7 +12,6 @@
 "use strict";
 
 const express = require("express");
-const session = require("express-session");
 const path = require("path");
 const logger = require("morgan");
 
@@ -21,7 +20,6 @@ const ssoRouter = require("./routes/sso.js");
 
 const app = express();
 app.use(logger("dev"));
-app.use(session({ secret: "shhhh", resave: false, saveUninitialized: true }));
 
 // Views
 app.set("views", path.join(__dirname, "views"));

@@ -49,12 +49,12 @@ CREATE TABLE "access_token" (
     "last_updated_timestamp" TIMESTAMPTZ NULL
 );
 
--- Keep track of the mapping between the referer origin and the session token for the referer origin
--- to be found in the SSO callback request
-CREATE TABLE "referer_tracker" (
-    "session_token" VARCHAR(64) NOT NULL PRIMARY KEY,
-    "referer_origin" TEXT NOT NULL,
-    "referer_url" TEXT NOT NULL,
+-- Keep track of the mapping between the referer origin that the SSO request is from and the state value sent to
+-- SSO provider for this request
+CREATE TABLE "sso_state_tracker" (
+    "sso_state" VARCHAR(64) NOT NULL PRIMARY KEY,
+    "referer_origin" TEXT DEFAULT NULL,
+    "referer_url" TEXT DEFAULT NULL,
     "created_timestamp" TIMESTAMPTZ NOT NULL
 );
 

@@ -91,49 +91,58 @@ class DataBaseRequest extends postgresOps.postgresOps {
     };
 
     /**
-     * Save the mapping between the session token and the referer origin in the table for future look up
+     * Save the mapping between the SSO state and the referer origin in the table for future look up
      * of the referer origin.
      *
-     * @param {String} sessionToken - The session token.
+     * @param {String} ssoState - The SSO state.
      * @param {String} refererOrigin - The referer origin. An example is: https://idrc.ocadu.ca
      * @param {String} refererUrl - The referer URL. An example is: https://idrc.ocadu.ca/about/
      * @return {Object|null} the newly created record.
      */
-    async trackRefererOrigin(sessionToken, refererOrigin, refererUrl) {
-        const newRecord = await this.runSql(`
-            INSERT INTO referer_tracker ("session_token", "referer_origin", "referer_url", "created_timestamp")
-            VALUES ('${sessionToken}', '${refererOrigin}', '${refererUrl}', current_timestamp)
-            RETURNING *;
-        `);
+    async trackSsoState(ssoState, refererOrigin, refererUrl) {
+        let newRecord;
+        if (refererOrigin) {
+            newRecord = await this.runSql(`
+                INSERT INTO sso_state_tracker ("sso_state", "referer_origin", "referer_url", "created_timestamp")
+                VALUES ('${ssoState}', '${refererOrigin}', '${refererUrl}', current_timestamp)
+                RETURNING *;
+            `);
+        } else {
+            newRecord = await this.runSql(`
+                INSERT INTO sso_state_tracker ("sso_state","created_timestamp")
+                VALUES ('${ssoState}', current_timestamp)
+                RETURNING *;
+            `);
+        }
 
         return newRecord.rows[0];
     };
 
     /**
-     * Get the referer origin of the given session token.
+     * Get the referer origin of the given SSO state.
      *
-     * @param {String} sessionToken - The session token.
-     * @return {String} return the referer origin linked with the given session token. Return null if the record
+     * @param {String} ssoState - The SSO state.
+     * @return {String} return the referer origin linked with the given SSO state. Return null if the record
      * is not found.
      */
-    async getRefererBySessionToken(sessionToken) {
-        const refererRecord = await this.runSql(`
-            SELECT * FROM referer_tracker WHERE session_token = '${sessionToken}';
+    async getSsoState(ssoState) {
+        const ssoStateRecord = await this.runSql(`
+            SELECT * FROM sso_state_tracker WHERE sso_state = '${ssoState}';
         `);
 
-        return refererRecord.rowCount > 0 ? refererRecord.rows[0] : null;
+        return ssoStateRecord.rowCount > 0 ? ssoStateRecord.rows[0] : null;
     };
 
     /**
-     * Save the mapping between the session token and the referer origin in the table for future look up
+     * Save the mapping between the SSO state and the referer origin in the table for future look up
      * of the referer origin.
      *
-     * @param {String} sessionToken - The session token.
+     * @param {String} ssoState - The SSO state.
      * @return {Boolean} return true if the record is deleted. Otherwise, return false.
      */
-    async deleteRefererOriginBySessionToken(sessionToken) {
+    async deleteSsoState(ssoState) {
         const refererOriginRecord = await this.runSql(`
-            DELETE FROM referer_tracker WHERE session_token = '${sessionToken}' RETURNING *;
+            DELETE FROM sso_state_tracker WHERE sso_state = '${ssoState}' RETURNING *;
         `);
 
         return refererOriginRecord.rowCount > 0;

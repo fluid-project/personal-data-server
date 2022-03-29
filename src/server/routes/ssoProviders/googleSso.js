@@ -60,22 +60,19 @@ class GoogleSso {
      * to Google.  This throws if there is an error retrieving the client
      * information from the database.
      *
-     * @param {Object} req - The express request that triggered the workflow
-     * @param {Object} req.session.secret - Anti-forgery token used in the SSO workflow
      * @param {Object} res - The express response used to redirect to Google
      * @param {Object} ssoDbOps - Used to retrieve this client's id and secret
      * @param {Object} options - Other options specific to Google SSO
      * @param {String} options.authorizeUri - Google's authorization endpoint
      * @param {String} options.encodedRedirectUri - The endpoint that Google will call
      * @param {String} options.accessType - The type of access to Google needed for SSO
-     * @param {String} sessionToken - The value used as the request session secret
+     * @param {String} ssoState - The SSO state
      *
      */
-    async authorize(req, res, ssoDbOps, options, sessionToken) {
-        req.session.secret = sessionToken;
+    async authorize(res, ssoDbOps, options, ssoState) {
         // Send the authorize request to the SSO provider
         const clientInfo = await ssoDbOps.getSsoClientInfo(this.options.provider);
-        const authRequest = `${options.authorizeUri}?client_id=${clientInfo.client_id}&redirect_uri=${options.encodedRedirectUri}&scope=openid+profile+email&response_type=code&state=${req.session.secret}&access_type=${options.accessType}`;
+        const authRequest = `${options.authorizeUri}?client_id=${clientInfo.client_id}&redirect_uri=${options.encodedRedirectUri}&scope=openid+profile+email&response_type=code&state=${ssoState}&access_type=${options.accessType}`;
         console.debug("Google /authorize request: ", authRequest);
         res.redirect(authRequest);
     };
@@ -97,13 +94,6 @@ class GoogleSso {
      */
     async handleCallback(req, ssoDbOps, options) {
         try {
-            if (req.query.error) {
-                throw new Error("The user does not approve the request. Error: " + req.query.error);
-            }
-            if (!req.query.code) {
-                throw new Error("Request missing authorization code");
-            }
-
             const accessTokenResponse = await this.fetchAccessToken(req.query.code, ssoDbOps, options.accessTokenUri, options.redirectUri, options.provider);
             if (accessTokenResponse.status !== 200) {
                 return accessTokenResponse;

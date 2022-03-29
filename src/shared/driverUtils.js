@@ -130,6 +130,9 @@ fluid.personalData.dockerStartDatabase = async function (container, image, dbCon
 /**
  * Disconnect the database client from the database and stop the database docker
  * container.
+ * Note that `postgresHandler.end()` should only be called once at the last test
+ * set to stop the postgres handler. When there are subsequent test sets using
+ * the postgres handler, don't pass `postgresHandler` into this function.
  *
  * @param {String} container - Name of the docker container.
  * @param {Object} postgresHandler - Optional: the postgresOps object to
