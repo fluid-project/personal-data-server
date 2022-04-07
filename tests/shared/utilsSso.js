@@ -16,6 +16,7 @@ fluid.registerNamespace("fluid.tests.utils");
 fluid.tests.sqlFiles = {
     clearDB: __dirname + "/../../dataModel/ClearDB.sql",
     createTables: __dirname + "/../../dataModel/SsoTables.sql",
+    createSessionTable: __dirname + "/../../node_modules/connect-pg-simple/table.sql",
     loadData: __dirname + "/../data/SsoProvidersData.sql"
 };
 

@@ -23,6 +23,7 @@ require("./src/shared/driverUtils.js");
 const sqlFiles = {
     clearDB: __dirname + "/dataModel/ClearDB.sql",
     createTables: __dirname + "/dataModel/SsoTables.sql",
+    createSessionTable: __dirname + "/node_modules/connect-pg-simple/table.sql",
     loadData: __dirname + "/dataModel/SsoProvidersData.sql"
 };
 

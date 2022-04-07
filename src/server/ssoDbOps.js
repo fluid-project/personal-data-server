@@ -14,7 +14,7 @@
 const path = require("path");
 const postgresOps = require("../dbOps/postgresOps.js");
 const utils = require("../shared/utils.js");
-const config = require("../shared/utils.js").loadConfig(path.join(__dirname, "../../config.json5"));
+const config = utils.loadConfig(path.join(__dirname, "../../config.json5"));
 
 class DataBaseRequest extends postgresOps.postgresOps {
 

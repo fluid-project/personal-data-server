@@ -161,7 +161,7 @@ jqUnit.test("Google SSO unit tests", async function () {
 });
 
 jqUnit.test("Google SSO integration tests", async function () {
-    jqUnit.expect(skipDocker ? 24 :26);
+    jqUnit.expect(skipDocker ? 24 : 26);
     let serverStatus, response;
 
     if (!skipDocker) {
@@ -199,10 +199,10 @@ jqUnit.test("Google SSO integration tests", async function () {
     // Success case 1: referer is not in the "/sso/google" request header
     fluid.tests.setupMockResponses(googleSso.options);
     response = await fluid.tests.googleSso.sendAuthRequest(serverUrl, "/sso/google");
-    fluid.tests.googleSso.testResponse(response, 200, {}, "/sso/google");
+    fluid.tests.googleSso.testResponse(response, 200, "", "/sso/google");
 
     response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + mockAuthCode + "&state=" + authPayload.state);
-    fluid.tests.googleSso.testResponse(response, 200, {accessToken: '"PatAccessToken.someRandomeString"'}, "/sso/google/login/callback");
+    fluid.tests.googleSso.testResponse(response, 200, {accessToken: "\"PatAccessToken.someRandomeString\""}, "/sso/google/login/callback");
 
     // Success case 2: referer is Personal Data Server self domain
     fluid.tests.setupMockResponses(googleSso.options);
@@ -211,10 +211,10 @@ jqUnit.test("Google SSO integration tests", async function () {
             "referer": config.server.selfDomain
         }
     });
-    fluid.tests.googleSso.testResponse(response, 200, {}, "/sso/google");
+    fluid.tests.googleSso.testResponse(response, 200, "", "/sso/google");
 
     response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + mockAuthCode + "&state=" + authPayload.state);
-    fluid.tests.googleSso.testResponse(response, 200, {accessToken: '"PatAccessToken.someRandomeString"'}, "/sso/google/login/callback");
+    fluid.tests.googleSso.testResponse(response, 200, {accessToken: "\"PatAccessToken.someRandomeString\""}, "/sso/google/login/callback");
 
     // Success case 3: referer is from an external url that is not Personal Data Server self domain.
     // The response should redirect to the external url.
@@ -224,7 +224,7 @@ jqUnit.test("Google SSO integration tests", async function () {
             "referer": mockReferer
         }
     });
-    fluid.tests.googleSso.testResponse(response, 200, {}, "/sso/google");
+    fluid.tests.googleSso.testResponse(response, 200, "", "/sso/google");
 
     response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + mockAuthCode + "&state=" + authPayload.state);
     jqUnit.assertEquals("The response redirects to the mock referer", "external.site.com", response.hostname);
@@ -233,7 +233,7 @@ jqUnit.test("Google SSO integration tests", async function () {
     response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + mockAuthCode + "&state=wrongState");
     fluid.tests.googleSso.testResponse(response, 403, {
         isError: true,
-        message: "Wrong anti-forgery parameter"
+        message: "Mismatched anti-forgery parameter"
     }, "/sso/google/login/callback?code=" + mockAuthCode + "&state=wrongState");
 
     // Test failure of "/sso/google/login/callback" - Request missing authorization code
@@ -274,7 +274,7 @@ fluid.tests.setupMockResponses = function (options) {
             authPayload = payload;
             return true;
         })
-        .reply(200, {});
+        .reply(200);
 
     // Mock Google's get access token endpoint.
     const accessTokenURL = new url.URL(options.accessTokenUri);

@@ -135,8 +135,7 @@ fluid.personalData.dockerStartDatabase = async function (container, image, dbCon
  * the postgres handler, don't pass `postgresHandler` into this function.
  *
  * @param {String} container - Name of the docker container.
- * @param {Object} postgresHandler - Optional: the postgresOps object to
- *                             disconnect from the database.
+ * @param {Object} postgresHandler - Optional: the postgresOps object to disconnect from the database.
  * @return {Object} result of disconnecting `postgresHandler` from the database.
  *                  {dbStopped: true} if no error; {isError: true, message: error-message} otherwise.
  */
@@ -235,11 +234,10 @@ fluid.personalData.clearDB = async function (postgresHandler, clearDbSqlFile) {
 /**
  * Set up tables and load data records into tables.
  *
- * @param {Object} postgresHandler - The postgresOps object to use to interact
- *                             with the database.
+ * @param {Object} postgresHandler - The postgresOps object to use to interact with the database.
  * @param {Object} sqlFiles - SQL files to use to initiate the database
- * @param {String} sqlFiles.createTables - Path to SQL file with commands to create
- *                                      the database tables.
+ * @param {String} sqlFiles.createTables - Path to SQL file with commands to create the database tables.
+ * @param {String} sqlFiles.createSessionTable - Path to SQL file to create the session table.
  * @param {String} sqlFiles.loadData - Path to SQL file to load data into tables.
  * @return {Object} {isInited: true} if no error; {isError: true, message: error-message} otherwise.
  */
@@ -247,6 +245,8 @@ fluid.personalData.initDB = async function (postgresHandler, sqlFiles) {
     try {
         console.log("- Creating tables ...");
         await postgresHandler.runSqlFile(sqlFiles.createTables);
+        console.log("- Creating the session table ...");
+        await postgresHandler.runSqlFile(sqlFiles.createSessionTable);
         console.log("- Loading initial data ...");
         await postgresHandler.runSqlFile(sqlFiles.loadData);
         return {
