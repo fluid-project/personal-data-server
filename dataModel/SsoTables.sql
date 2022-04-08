@@ -51,7 +51,7 @@ CREATE TABLE "access_token" (
 
 -- Keep track of the mapping between the referer origin that the SSO request is from and the state value sent to
 -- SSO provider for this request
-CREATE TABLE "sso_state_tracker" (
+CREATE TABLE "referer_tracker" (
     "sso_state" VARCHAR(64) NOT NULL PRIMARY KEY,
     "referer_origin" TEXT DEFAULT NULL,
     "referer_url" TEXT DEFAULT NULL,

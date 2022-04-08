@@ -103,13 +103,13 @@ class DataBaseRequest extends postgresOps.postgresOps {
         let newRecord;
         if (refererOrigin) {
             newRecord = await this.runSql(`
-                INSERT INTO sso_state_tracker ("sso_state", "referer_origin", "referer_url", "created_timestamp")
+                INSERT INTO referer_tracker ("sso_state", "referer_origin", "referer_url", "created_timestamp")
                 VALUES ('${ssoState}', '${refererOrigin}', '${refererUrl}', current_timestamp)
                 RETURNING *;
             `);
         } else {
             newRecord = await this.runSql(`
-                INSERT INTO sso_state_tracker ("sso_state","created_timestamp")
+                INSERT INTO referer_tracker ("sso_state","created_timestamp")
                 VALUES ('${ssoState}', current_timestamp)
                 RETURNING *;
             `);
@@ -127,7 +127,7 @@ class DataBaseRequest extends postgresOps.postgresOps {
      */
     async getSsoState(ssoState) {
         const ssoStateRecord = await this.runSql(`
-            SELECT * FROM sso_state_tracker WHERE sso_state = '${ssoState}';
+            SELECT * FROM referer_tracker WHERE sso_state = '${ssoState}';
         `);
 
         return ssoStateRecord.rowCount > 0 ? ssoStateRecord.rows[0] : null;
@@ -142,7 +142,7 @@ class DataBaseRequest extends postgresOps.postgresOps {
      */
     async deleteSsoState(ssoState) {
         const refererOriginRecord = await this.runSql(`
-            DELETE FROM sso_state_tracker WHERE sso_state = '${ssoState}' RETURNING *;
+            DELETE FROM referer_tracker WHERE sso_state = '${ssoState}' RETURNING *;
         `);
 
         return refererOriginRecord.rowCount > 0;

@@ -607,7 +607,7 @@ CREATE TABLE "access_token" (
 );
 ```
 
-### sso_state_tracker
+### referer_tracker
 
 Keeps track of the mapping between the referer origin and the SSO state. When an external website calls Personal
 Data Server SSO API, this call is redirected to the authorization endpoint provided by the SSO provider. When making
@@ -627,7 +627,7 @@ back to the referer URL when the authentication completes.
 #### SQL:
 
 ```postgresql
-CREATE TABLE "sso_state_tracker" (
+CREATE TABLE "referer_tracker" (
     "sso_state" VARCHAR(64) NOT NULL PRIMARY KEY,
     "referer_origin" TEXT DEFAULT NULL,
     "referer_url" TEXT DEFAULT NULL,
