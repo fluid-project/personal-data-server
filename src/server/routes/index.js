@@ -13,7 +13,7 @@
 
 const express = require("express");
 const router = express.Router();
-const ssoDbOps = require("../ssoDbOps.js");
+const ssoDbOps = require("../dbOps.js");
 
 /**
  * Home page.

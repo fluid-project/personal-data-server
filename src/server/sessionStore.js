@@ -12,7 +12,7 @@
 "use strict";
 
 const expressSession = require("express-session");
-const ssoDbOps = require("./ssoDbOps.js");
+const ssoDbOps = require("./dbOps.js");
 const PgSession = require("connect-pg-simple")(expressSession);
 
 module.exports = new PgSession({

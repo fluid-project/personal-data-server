@@ -25,7 +25,7 @@ const serverUrl = "http://localhost:" + config.server.port;
 fluid.tests.utils.setDbEnvVars(config.db);
 
 const googleSso = require("../src/server/routes/ssoProviders/googleSso.js");
-const ssoDbOps = require("../src/server/ssoDbOps.js");
+const ssoDbOps = require("../src/server/dbOps.js");
 const server = require("../server.js");
 
 jqUnit.module("Personal Data Server Google SSO Tests");

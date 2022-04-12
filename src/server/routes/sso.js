@@ -18,7 +18,7 @@
 
 const express = require("express");
 const path = require("path");
-const ssoDbOps = require("../ssoDbOps.js");
+const ssoDbOps = require("../dbOps.js");
 const googleSso = require("./ssoProviders/googleSso.js");
 const sessionStore = require("../sessionStore.js");
 const utils = require("../../shared/utils.js");
@@ -46,7 +46,7 @@ router.get("/google", async function (req, res) {
     let refererOrigin, refererUrl;
     const ssoSecret = utils.generateRandomToken(lengthOfSsoSecret);
 
-    // Problem: After setting`req.session.secret` in the line below, express-session expects to set these
+    // Problem: After setting`req.session.secret` in the line below, express-session is expected to set these
     // values in the response header: sessionID, session.secret and connect.sid in the headers.cookie.
     // The first 2 values are read only. If the same connect.sid cookie value is sent back in following requests,
     // express-session will use it to look up the corresponding secret value stored in the session store.
