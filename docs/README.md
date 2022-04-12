@@ -8,7 +8,9 @@ that it is made from.
 
 * [Postgres Operations and API](PostgresOperations.md)
 * [The Workflow between UIO and Personal Data Server - In Discussion](Workflow.md)
+* [Data Model](DataModel.md)
 * [Helper Scripts](HelperScripts.md)
+* [Google Authentication Registration](GoogleSsoRegistration.md)
 
 ## Legacy Documentation
 

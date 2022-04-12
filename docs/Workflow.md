@@ -19,7 +19,9 @@ of the SSO process.
 
 ## OpenID Connect Workflow
 
-![Preferences OpenID Connect Flow](./images/StaticAuthWorkflow.png)
+![Workflow to Connect External UIO Websites with Preferences Server](./images/SSOWorkflow.png)
+
+Read [this document](./images/SSOWorkflow.md) regarding how to edit this diagram.
 
 ## Actors/Resources
 
@@ -33,7 +35,7 @@ of the SSO process.
 * **SSO Client**: A client of an SSO provider, where the client uses the
   provider as a way of authenticating users.  The Personal Data Server is a client
   in this context.
-* **SSO Provider**: An OAuth2 server that is used to authenticate users.  Google is
+* **SSO Provider**: An OAuth2 server that is used to authenticate users. Google is
   an SSO provider.
 * **Personal Data Server**: An instance of the Personal Data Storage service. Stores
   preferences and authenticates with a single sign on (SSO) provider, e.g. Google.
@@ -44,12 +46,11 @@ of the SSO process.
 
 1. Open login
     1. Trigger login to Personal Data Server from UIO
-    2. UIO makes a local request handled by the Edge Proxy. This is to prevent
-       cross origin requests. e.g. `/login/google`
-    3. The Edge Proxy redirects this request to the proper endpoint on the
-       Personal Data Server.
+    2. UIO makes a request to the Preferences Server login API. e.g. `/sso/google`
 2. The Personal Data Server sends an [authentication request](https://developers.google.com/identity/protocols/oauth2/openid-connect#sendauthrequest)
-   to Google.
+   to Google. Meanwhile, the Personal Data Server keeps track of the referer URL
+   that the login request is from. This referer URL is the external website URL
+   that UIO is implemented.
    1. the authentication request includes the following as query parameters:
       * `client_id` identifying the Personal Data Server to Google
       * `response_type` which is usually `code`
@@ -63,7 +64,7 @@ of the SSO process.
       scope.
       * If the user is already logged into Google, they will be presented
         with the consent dialog.
-   3. The Resource Owner authenticates with Google and grants consent
+   3. The Resource Owner authenticates with Google and grants consent.
       * If the user has previously provided consent, Google will present no
         dialog, but will retrieve the scope(s) of information for which the user
         has consented.
@@ -84,22 +85,23 @@ of the SSO process.
          will receive the response from Google (same value as step 2i)
       * `grant_type` which must be set to `authorization_code`
    7. Google responds at the previously specified redirect uri with the Access
-      Token
+      Token.
       * The `access_token` can be used by the Personal Data Server to access the Google API
 3. Authenticate and Authorize UIO
-   1. The Personal Data Server generates a time-limited session key that is associated
+   1. The Personal Data Server generates a time-limited `loginToken` that is associated
       with the authenticated Resource Owner.
-   2. The Personal Data Server responds to the `/authenticate` request sending the
-      session key to the Edge Proxy
-   3. The Edge Proxy responds to UIO's `/login/google` request, passing back the session key
+   2. The Personal Data Server saves the mapping between the `loginToken` and the external
+      website URL into the database for future verifications.
+   3. The Personal Data Server redirects to the external website URL, passing back the
+      `loginToken` as a cookie in the response header.
 4. Making Authorized Requests to the Personal Data Server
    1. UIO make a local request to the Personal Data Server handled by the Edge Proxy,
       passing the `loginToken` in the `Authorization` header.
    2. The Edge Proxy redirects this request to a Personal Data Server
-      end point
+      end point.
    3. The Personal Data Server validates the `loginToken` authorization.
-   4. The Personal Data Server responds to the Edge Proxy
-   5. The Edge Proxy responds to UIO
+   4. The Personal Data Server responds to the Edge Proxy.
+   5. The Edge Proxy responds to UIO.
 
 ## UIO and Edge Proxy Details
 
@@ -110,86 +112,50 @@ Personal Data Server using their Google credentials.
 
 The details of this are left to UIO.
 
-**1ii**. UIO makes a local request handled by the Edge Proxy.
+**1ii**. UIO makes a request to the Preferences Server login API.
 
 ```text
-GET /<Edge Proxy>/login/google
+GET /<Personal Data Server>/sso/google
 ```
 
-### Parameters
-
-This request has no parameters, nor payload
-
-**1iii**. The Edge Proxy redirects to the single sign-on endpoint of the
-Personal Data Server
-
-```text
-GET /<Personal Data Server>/authenticate
-```
-
-### Parameters
-
-| Name    | Type     | Description |
-| ---     | ---      | ---         |
-| `sso`   | `String` | __Required__. Identifier of the SSO provider to use, e.g. `google` |
-
-Payload: None
+This request has no parameters, no payload.
 
 This triggers the SSO workflow which is described in the [Single Sign On Details](#single-sign-on-details)
 section.
 
-<a id="step-3i"></a>**3i**. The Personal Data Server generates a time-limited
-`login_token` that is associated with the authenticated Resource Owner.
+**3i**. The Personal Data Server generates a time-limite `login_token` that is
+associated with the authenticated Resource Owner. This login token is persisted
+in the Personal Data Server's database.
 
-This login token is persisted in the Personal Data Server's database and
-associated with the Resource Owner's `sso_user_account`.  This `loginToken` has a
-expiration that is linked to the the expiration of the `access_token`
-generated by the SSO provider at the end of the Single Sign On workflow (step 2vii).
-The `access_token`'s expiration is set by the SSO provider as well.  The `loginToken`
-generated at the current step expires at the same time as the `access_token`.  When
-the SSO `access_token` expires and is refreshed, the `loginToken` is simultaneously
+**3ii**. The login token is associated with the Resource Owner's `sso_user_account`
+and the external website URL that UIO is implemented.  This `loginToken` has a
+expiration that is defined by the Personal Data Server. When the `loginToken`
+generated at the current step has not expired but the SSO `access_token` already
+expires, the SSO `access_token` will be refreshed and the `loginToken` is simultaneously
 refreshed.
 
-**3ii, 3iii**. The Personal Data Server responds to the Edge Proxy's `/authenticate`
-request sending the session key to the Edge Proxy.  Similarly, the Edge Proxy responds to
-UIO's `/login/google` request:
-
-```text
-HTTP/1.1 200 OK
-Content-Type: application/json;charset=UTF-8
-{
-    "loginToken":"2YotnFZFEjr1zCsicMWpAA",
-    "token_type":"bearer",
-}
-```
-
-### Payload of response
-
-| Name             | Type     | Description |
-| ---              | ---      | ---         |
-| `loginToken`     | `String` | __Required__. Generated by the Personal Data Server to use to access the Resource Owner's preferences on the Personal Data Server |
-| `token_type`     | `String` | __Required__. The type of access: `bearer` |
+**3ii**. The Personal Data Server redirects to the external website URL, passing back the
+`loginToken` as a cookie in the response header. The `Expires/Max-Age` value is set to the
+timestamp when the `loginToken` expires.
 
 **4i**. UIO makes a local request to the Personal Data Server handled by the Edge Proxy,
-passing the `loginToken` in the `Authorization` header.
+passing the `loginToken` as a cookie in the request header.
 
 ```text
-GET /<Edge Proxy>/preferences
-Header: Authorization: Bearer <loginToken>
+GET /<Edge Proxy>/get_prefs
+Header: Cookie: <loginToken>
 ```
 
-#### Parameters
+#### Cookies
 
 | Name             | Type     | Description |
 | ---              | ---      | ---         |
-| `loginToken`     | `String` | __Required__. The same value generated and returned by the Personal Data Server at step 3ii and 3iii |
-| `prefsSet`       | `String` | __Required__. The name of the preferences to retrieve, e.g. "UIO"  |
+| `loginToken`     | `String` | __Required__. The same value generated and returned by the Personal Data Server at step 3ii |
 
 **4ii**. The Edge Proxy redirects this request to a Personal Data Server end point.
 
 ```text
-GET /<Personal Data Server>/preferences
-Header: Authorization: Bearer <loginToken>
+GET /<Personal Data Server>/get_prefs?loginToken={String}
 ```
 
 ### Parameters
@@ -197,14 +163,16 @@ Header: Authorization: Bearer <loginToken>
 | Name             | Type     | Description |
 | ---              | ---      | ---         |
 | `loginToken`     | `String` | __Required__. The same value generated and returned by the Personal Data Server at step 3ii and 3iii |
-| `prefsSet`       | `String` | __Required__. The name of the preferences to retrieve, e.g. "UIO"  |
 
 **4iii**. The Personal Data Server validates the `loginToken` authorization.
 
 The Personal Data Server compares the given `loginToken` against the one(s) in its
-database.  If it finds a match, it cross references that record against the `user`
-records, and from there, the associated `PrefsSafes`.  It retrieves the named `prefsSet`
-from that safe.
+database:
+
+* If it finds a match, it cross references that record against the corresponding
+`local_user` record, and retrieves the `preferences` from that record.
+* If it doesn't find a match, it redirects to the Personal Data Server login API
+`GET /<Personal Data Server>/sso/google`.
 
 **4iv**. The Personal Data Server responds to the Edge Proxy
 
@@ -212,10 +180,7 @@ from that safe.
 HTTP/1.1 200 OK
 Content-Type: application/json;charset=UTF-8
 {
-    "prefsSet":"UIO",
-    "preferences":{ ... },
-    "loginToken": "2YotnFZFEjr1zCsicMWpAA",
-    "token_type":"bearer"
+    "preferences": { ... }
 }
 ```
 
@@ -223,10 +188,7 @@ Content-Type: application/json;charset=UTF-8
 
 | Name          | Type     | Description |
 | ---           | ---      | ---         |
-| `prefsSet`    | `String` | The name of the preferences set requested at step 4ii |
 | `preferences` | `JSON`   | The preferences requested |
-| `loginToken`  | `String` | __Optional__. A refreshed `loginToken` |
-| `token_type`  | `String` | __Optional__. The type of the `loginToken`, e.g. "bearer" |
 
 The `loginToken, token_type` pair is part of the response only if the
 `loginToken` parameter of the request was legitimate, but found to have expired.
@@ -238,10 +200,7 @@ See the [Role of Refresh in Full Static Workflow](#role-of-refresh-in-full-stati
 HTTP/1.1 200 OK
 Content-Type: application/json;charset=UTF-8
 {
-    "prefsSet":"UIO",
-    "preferences":{ ... },
-    "loginToken": "2YotnFZFEjr1zCsicMWpAA",
-    "token_type":"bearer"
+    "preferences":{ ... }
 }
 ```
 
@@ -485,188 +444,3 @@ includes the new value as part of its response to the Edge Proxy.  This workflow
 is shown below.
 
 ![Refresh Token Workflow](./images/RefreshTokenWorkflow.png)
-
-## Data Model
-
-This section describes the database structures for supporting SSO between the
-Personal Data Server and a single sign-on provider, such as Google.
-
-### sso_provider
-
-`sso_provider` records are primarily for storing the `client_id` and
-`client_secret` generated by the SSO provider during registration.  The
-`client_id` uniquely identifies the Personal Data Server. Information about the
-provider itself is also stored here.
-
-| Name                     | Type    | Required?    | Default | Description |
-| ---                      | ---     | ---          | ---     | ---         |
-| `provider_id`            | Integer | __Required__ | None    | Primary key. The ID of this record |
-| `provider`               | String  | __Required__ | None    | User friendly name of the provider |
-| `name`                   | String  | __Required__ | None    | Name of the provider |
-| `client_id`              | String  | __Required__ | None    | Personal Data Server ID for this Provider |
-| `client_secret`          | String  | __Required__ | None    | Secret shared between the Personal Data Server and this Provider |
-| `created_timestamp`      | TimeStamp  | __Required__ | None    | The timestamp when the record is created |
-| `last_updated_timestamp` | TimeStamp  | __Optional__ | None    | The timestamp when the record is last updated |
-
-#### SQL:
-
-```postgresql
-CREATE TABLE "sso_provider" (
-    "provider_id" SERIAL NOT NULL PRIMARY KEY,
-    "provider" varchar(30) NOT NULL,
-    "name" varchar(40) NOT NULL,
-    "client_id" varchar(191) NOT NULL,
-    "client_secret" varchar(191) NOT NULL,
-    "created_timestamp" TIMESTAMPTZ NULL,
-    "last_updated_timestamp" TIMESTAMPTZ NULL
-);
-```
-
-### local_user
-
-Records that contains information about personal data server users.  Note that `user` is a reserved keyword in
-PostgresSQL so the table name uses `local_user` instead of `user`. For now, this table saves two types of information:
-
-1. The linkage between `local_user` and `sso_user_account` via `user_id` field;
-2. The user preferences.
-
-| Name                     | Type    | Required?    | Default | Description |
-| ---                      | ---     | ---          | ---     | ---         |
-| user_id                  | String  | __Required__ | None    | Primary key. The ID of this record |
-| preferences              | JSONB   | __Optional__ | None    | The user preferences |
-| `created_timestamp`      | TimeStamp  | __Required__ | None    | The timestamp when the record is created |
-| `last_updated_timestamp` | TimeStamp  | __Optional__ | None    | The timestamp when the record is last updated |
-
-SQL:
-
-```postgresql
-CREATE TABLE "local_user" (
-    "user_id" SERIAL PRIMARY KEY NOT NULL,
-    "preferences" JSONB NULL,
-    "created_timestamp" TIMESTAMPTZ NOT NULL,
-    "last_updated_timestamp" TIMESTAMPTZ NULL
-);
-```
-
-### sso_user_account
-
-These records store the information about the user as returned by the SSO
-provider.  As such, they cross reference `user` and `sso_provider` records.
-
-| Name                     | Type    | Required?    | Default | Description |
-| ---                      | ---     | ---          | ---     | ---         |
-| sso_user_account_id      | Integer | __Required__ | None    | Primary key. The ID of this record |
-| user_id_from_provider    | String  | __Required__ | None    | The user id provided by the provider via the user information |
-| provider_id              | Integer | __Required__ | None    | Reference to the sso_provider record |
-| user_id                  | Integer | __Required__ | None    | Reference to the local_user record associated with the SSO user account |
-| user_info                | JSONB   | __Required__ | None    | Information returned by the SSO provider about the associated user |
-| `created_timestamp`      | TimeStamp | __Required__ | None    | The timestamp when the record is created |
-| `last_updated_timestamp` | TimeStamp | __Optional__ | None    | The timestamp when the record is last updated |
-
-#### SQL:
-
-```postgresql
-CREATE TABLE "sso_user_account" (
-    "sso_user_account_id" SERIAL PRIMARY KEY NOT NULL,
-    "user_id_from_provider" varchar(64) NOT NULL,
-    "provider_id" INTEGER NOT NULL REFERENCES "sso_provider" ("provider_id") ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-    "user_id" INTEGER NOT NULL REFERENCES "local_user" ("user_id") ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-    "user_info" JSONB NOT NULL,
-    "created_timestamp" TIMESTAMPTZ NOT NULL,
-    "last_updated_timestamp" TIMESTAMPTZ NULL
-);
-```
-
-### access_token
-
-The access token returned by the SSO Provider that is used for access to the
-user's information stored by the Provider.  These records also store the login
-token that the Personal Data Server passes back to the Edge Proxy and Resource
-owner for accessing the user's preferences.  The records cross references the
-user's `sso_user_account` and `sso_provider`.
-
-| Name                     | Type       | Required?    | Default           | Description |
-| ---                      | ---        | ---          | ---               | ---         |
-| sso_user_account_id      | Integer    | __Required__ | None              | Primary key. Reference to the corresponding sso_user_account record |
-| access_token             | String     | __Required__ | None              | The access token returned by the SSO Provider for this SSO user |
-| expires_at               | TimeStamp  | __Required__ | One hour from now | The timestamp at which this `access_token` expires.  This Provider supplies the duration in seconds |
-| refresh_token            | String     | __Optional__ | Null              | The refresh token returned by the SSO Provider for refreshing this `access_token` |
-| `created_timestamp`      | TimeStamp  | __Required__ | None              | The timestamp when the record is created |
-| `last_updated_timestamp` | TimeStamp  | __Optional__ | None              | The timestamp when the record is last updated |
-
-#### SQL:
-
-```postgresql
-CREATE TABLE "access_token" (
-    "sso_user_account_id" INTEGER PRIMARY KEY NOT NULL REFERENCES "sso_user_account" ("sso_user_account_id") ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-    "access_token" TEXT NOT NULL,
-    "expires_at" TIMESTAMPTZ NULL,
-    "refresh_token" TEXT DEFAULT NULL,
-    "created_timestamp" TIMESTAMPTZ NOT NULL,
-    "last_updated_timestamp" TIMESTAMPTZ NULL
-);
-```
-
-### referer_tracker
-
-Keeps track of the mapping between the referer origin and the SSO state. When an external website calls Personal
-Data Server SSO API, this call is redirected to the authorization endpoint provided by the SSO provider. When making
-an authorization request, a SSO state is generated by Personal Data Server and sent to the SSO provider. At this
-point, the mapping between the referer origin and the SSO state is saved in this table. When the SSO provider calls
-back to Personal Data Server with the access token and the same SSO state. Personal Data Server is able to find the
-corresponding referer origin and referer URL that the original authentication request was from. The user will be redirected
-back to the referer URL when the authentication completes.
-
-| Name                | Type       | Required?    | Default           | Description |
-| ---                 | ---        | ---          | ---               | ---         |
-| sso_state           | String    | __Required__ | None               | Primary key. This SSO state is generated by Personal Data Server and sent to the SSO provider at making authorization requests |
-| referer_origin      | String     | __Optional__ | NULL              | The referer domain of an external website calling Personal Data Server API. |
-| referer_url         | String     | __Optional__ | NULL              | The referer domain of an external website calling Personal Data Server API. Once the authentication completes, the user is redirected back to this URL |
-| `created_timestamp` | TimeStamp  | __Required__ | None              | The timestamp when the record is created |
-
-#### SQL:
-
-```postgresql
-CREATE TABLE "referer_tracker" (
-    "sso_state" VARCHAR(64) NOT NULL PRIMARY KEY,
-    "referer_origin" TEXT DEFAULT NULL,
-    "referer_url" TEXT DEFAULT NULL,
-    "created_timestamp" TIMESTAMPTZ NOT NULL
-);
-```
-
-### login_token
-
-The access token returned by the SSO Provider that is used for access to the
-user's information stored by the Provider.  These records also store the login
-token that the Personal Data Server passes back to the Edge Proxy and Resource
-owner for accessing the user's preferences.  The records cross references the
-user's `sso_user_account` and `sso_provider`.
-
-| Name                     | Type       | Required?    | Default           | Description |
-| ---                      | ---        | ---          | ---               | ---         |
-| sso_user_account_id      | Integer    | __Required__ | None              | Primary key. Reference to the corresponding sso_user_account record |
-| referer_origin           | String     | __Required__ | None              | Primary key. The referer domain of an external website calling Personal Data Server API|
-| login_token              | String     | __Optional__ | Null              | The login token returned to the external website for its future access to Personal Data Server API |
-| expires_at               | TimeStamp  | __Required__ | One day from now  | The timestamp at which this `login_token` expires |
-| `created_timestamp`      | TimeStamp  | __Required__ | None              | The timestamp when the record is created |
-| `last_updated_timestamp` | TimeStamp  | __Optional__ | None              | The timestamp when the record is last updated |
-
-#### SQL:
-
-```postgresql
-CREATE TABLE "login_token" (
-    "sso_user_account_id" INTEGER NOT NULL REFERENCES "sso_user_account" ("sso_user_account_id") ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-    "referer_origin" TEXT NOT NULL,
-    "login_token" VARCHAR(128) NOT NULL,
-    "expires_at" TIMESTAMPTZ NULL,
-    "created_timestamp" TIMESTAMPTZ NOT NULL,
-    "last_updated_timestamp" TIMESTAMPTZ NULL,
-    PRIMARY KEY ("sso_user_account_id", "referer_origin")
-);
-```
-
-## To Do
-
-* Provide example of structure of `PrefsSafes.preferences`
-* Diagram to show the relationships among the objects in the data model

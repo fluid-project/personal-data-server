@@ -46,17 +46,23 @@ router.get("/google", async function (req, res) {
     let refererOrigin, refererUrl;
     const ssoSecret = utils.generateRandomToken(lengthOfSsoSecret);
 
-    // One issue occured at writing tests is express-session doesn't generate corresponding cookie header
-    // when a req.session value is set. Inpired by this solution -
-    // https://github.com/expressjs/session/issues/689#issuecomment-551138078, instead of setting the
-    // OAuth state parameter to req.session.secret, it's set to secret + sessionID. Then on OAuth callback,
-    // Use sessionID to fetch the secret value from the session DB, then compare it with the secret
-    // embedded in the state value.
+    // Problem: After setting`req.session.secret` in the line below, express-session expects to set these
+    // values in the response header: sessionID, session.secret and connect.sid in the headers.cookie.
+    // The first 2 values are read only. If the same connect.sid cookie value is sent back in following requests,
+    // express-session will use it to look up the corresponding secret value stored in the session store.
+    // In the normal browser/server interaction with Google Authentication API, these values are set properly.
+    // However, in automated tests that use simulation requests, connect.sid cookie value is not generated and set.
+    // Solution: the solution is inpired by https://github.com/expressjs/session/issues/689#issuecomment-551138078:
+    // instead of relying on the connect.sid cookie value to look up the session value on the server,
+    // `secret + sessionID` string is send in the `state` query parameter. When the same `state` value is sent back
+    // in the callback request, use the embedded `sessionID` and sessionStore.get() API to look up the corresponding
+    // session value from the session store.
     req.session.secret = ssoSecret;
     const ssoState = ssoSecret + req.sessionID;
 
-    // Keep track of referer origin and url if it exists and not intiated by the Personal Data Server
-    // own website.
+    // Keep track of referer origin and url provided:
+    // 1. it exists;
+    // 2. not intialized by the Personal Data Server's own website.
     if (req.headers.referer) {
         refererUrl = new URL(req.headers.referer);
         refererOrigin = refererUrl.origin;
