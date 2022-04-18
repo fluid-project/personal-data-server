@@ -61,7 +61,7 @@ class GoogleSso {
      * information from the database.
      *
      * @param {Object} res - The express response used to redirect to Google
-     * @param {Object} ssoDbOps - Used to retrieve this client's id and secret
+     * @param {Object} dbOps - Used to retrieve this client's id and secret
      * @param {Object} options - Other options specific to Google SSO
      * @param {String} options.authorizeUri - Google's authorization endpoint
      * @param {String} options.encodedRedirectUri - The endpoint that Google will call
@@ -69,9 +69,9 @@ class GoogleSso {
      * @param {String} ssoState - The SSO state
      *
      */
-    async authorize(res, ssoDbOps, options, ssoState) {
+    async authorize(res, dbOps, options, ssoState) {
         // Send the authorize request to the SSO provider
-        const clientInfo = await ssoDbOps.getSsoClientInfo(this.options.provider);
+        const clientInfo = await dbOps.getSsoClientInfo(this.options.provider);
         const authRequest = `${options.authorizeUri}?client_id=${clientInfo.client_id}&redirect_uri=${options.encodedRedirectUri}&scope=openid+profile+email&response_type=code&state=${ssoState}&access_type=${options.accessType}`;
         console.debug("Google /authorize request: ", authRequest);
         res.redirect(authRequest);
@@ -87,14 +87,14 @@ class GoogleSso {
      *
      * @param {Object} req - The express request that triggered the workflow
      * @param {Object} req.query.code - Token from Google to use to request access token
-     * @param {Object} ssoDbOps - Used to update user, access_token, and sso_user_account
+     * @param {Object} dbOps - Used to update user, access_token, and sso_user_account
      *                             records
      * @param {Object} options - Other options specific to Google SSO
      * @return {String} - The access token record containing the access token returned by the SSO provider.
      */
-    async handleCallback(req, ssoDbOps, options) {
+    async handleCallback(req, dbOps, options) {
         try {
-            const accessTokenResponse = await this.fetchAccessToken(req.query.code, ssoDbOps, options.accessTokenUri, options.redirectUri, options.provider);
+            const accessTokenResponse = await this.fetchAccessToken(req.query.code, dbOps, options.accessTokenUri, options.redirectUri, options.provider);
             if (accessTokenResponse.status !== 200) {
                 return accessTokenResponse;
             }
@@ -104,7 +104,7 @@ class GoogleSso {
                 return userInfoResponse;
             }
             const userInfo = userInfoResponse.data;
-            const accessTokenRecord = await this.storeUserAndAccessToken(userInfo, accessTokenInfo, ssoDbOps, options.provider, options.defaultPreferences);
+            const accessTokenRecord = await this.storeUserAndAccessToken(userInfo, accessTokenInfo, dbOps, options.provider, options.defaultPreferences);
             return accessTokenRecord;
         } catch (e) {
             throw e;
@@ -115,16 +115,16 @@ class GoogleSso {
      * Request an access token from Google SSO.
      *
      * @param {String} code - The code provided by Gogole to exchange for the access token
-     * @param {Object} ssoDbOps - Database access for retrieving client id and secret.
+     * @param {Object} dbOps - Database access for retrieving client id and secret.
      * @param {Object} accessTokenUri - URI to Google's access token endpoint.
      * @param {Object} redirectUri - URI for Google's callback.
      * @param {Object} provider - Identifier to use to find this client's id and secret in the database.
      * @return {Object} The response from Google's `/token` endpoint, either a success with an access token
      * (status 200), or an error response.
      */
-    async fetchAccessToken(code, ssoDbOps, accessTokenUri, redirectUri, provider) {
+    async fetchAccessToken(code, dbOps, accessTokenUri, redirectUri, provider) {
         try {
-            const clientInfo = await ssoDbOps.getSsoClientInfo(provider);
+            const clientInfo = await dbOps.getSsoClientInfo(provider);
             const response = await axios({
                 method: "post",
                 url: accessTokenUri,
@@ -174,29 +174,29 @@ class GoogleSso {
      * @param {Object} userInfo - The information to use to create the sso user account record.
      * @param {Object} accessTokenInfo - The access token information object provided by the provider for
      *                               the user's access.
-     * @param {Object} ssoDbOps - Database access for storing the user, access
+     * @param {Object} dbOps - Database access for storing the user, access
      *                             token, and related records.
      * @param {Object} provider - Google provider id.
      * @param {Object} preferences - The default preferences for creating a user record.
      * @return {Object} Object that has the user, sso_user_account, sso_provider,
      *                  and access_token records.
      */
-    async storeUserAndAccessToken(userInfo, accessTokenInfo, ssoDbOps, provider, preferences) {
+    async storeUserAndAccessToken(userInfo, accessTokenInfo, dbOps, provider, preferences) {
         // Find if the sso account already in sso_user_account table
         let accessTokenRecord,
-            ssoUserAccountRecord = await ssoDbOps.getSsoUserAccount(userInfo.id, provider);
+            ssoUserAccountRecord = await dbOps.getSsoUserAccount(userInfo.id, provider);
 
         if (ssoUserAccountRecord === null) {
             // Create a new user record, a new sso user account and an access token.
             // TODO: the step of creating a new user record should be moved out of the SSO once the workflow
             // of connecting a user account and multiple SSO accounts is sorted out.
-            const newUserRecord = await ssoDbOps.createUser(preferences);
-            ssoUserAccountRecord = await ssoDbOps.createSsoUserAccount(newUserRecord.user_id, userInfo, options.provider);
-            accessTokenRecord = await ssoDbOps.createAccessToken(ssoUserAccountRecord.sso_user_account_id, accessTokenInfo);
+            const newUserRecord = await dbOps.createUser(preferences);
+            ssoUserAccountRecord = await dbOps.createSsoUserAccount(newUserRecord.user_id, userInfo, options.provider);
+            accessTokenRecord = await dbOps.createAccessToken(ssoUserAccountRecord.sso_user_account_id, accessTokenInfo);
         } else {
             // Update the existing sso user account and access token
-            ssoUserAccountRecord = await ssoDbOps.updateSsoUserAccount(ssoUserAccountRecord.sso_user_account_id, userInfo);
-            accessTokenRecord = await ssoDbOps.updateAccessToken(ssoUserAccountRecord.sso_user_account_id, accessTokenInfo);
+            ssoUserAccountRecord = await dbOps.updateSsoUserAccount(ssoUserAccountRecord.sso_user_account_id, userInfo);
+            accessTokenRecord = await dbOps.updateAccessToken(ssoUserAccountRecord.sso_user_account_id, accessTokenInfo);
         }
         return accessTokenRecord;
     };

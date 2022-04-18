@@ -13,7 +13,7 @@
 
 const express = require("express");
 const router = express.Router();
-const ssoDbOps = require("../dbOps.js");
+const dbOps = require("../dbOps.js");
 
 /**
  * Home page.
@@ -35,7 +35,7 @@ router.get("/health", function (req, res) {
  * "/ready" end point -- if server is healthy and the database is ready.
  */
 router.get("/ready", function (req, res) {
-    ssoDbOps.isReady().then(
+    dbOps.isReady().then(
         (ready) => { res.json({ isReady: ready }); },
         () => {
             res.status(503);
