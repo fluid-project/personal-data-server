@@ -8,8 +8,6 @@
 
 "use strict";
 
-require("./shared/utilsCommon.js");
-
 const testIncludes = [
     // Test DB operations
     "./postgresOpsTests.js",

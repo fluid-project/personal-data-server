@@ -16,8 +16,7 @@ const url = require("url");
 const jqUnit = require("node-jqunit");
 
 require("../src/shared/driverUtils.js");
-require("./shared/utilsCommon.js");
-require("./shared/utilsSso.js");
+require("./shared/testUtils.js");
 
 const path = require("path");
 const config = require("../src/shared/utils.js").loadConfig(path.join(__dirname, "testConfig.json5"));

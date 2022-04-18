@@ -48,3 +48,14 @@ fluid.tests.utils.sendRequest = async function (serverDomain, endpoint, options)
         return e.response ? e.response : e;
     }
 };
+
+/**
+ * Disconnect the postgres client from its server. See https://node-postgres.com/api/client
+ *
+ * @param {Object} postgresHandler - The postgres handler.
+ */
+fluid.tests.utils.finish = async function (postgresHandler) {
+    await postgresHandler.end().then(() => {
+        fluid.log("Postgres operations done");
+    });
+};
