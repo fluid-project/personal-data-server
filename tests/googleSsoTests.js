@@ -10,7 +10,6 @@
 
 require("json5/lib/register");
 const fluid = require("infusion");
-const axios = require("axios");
 const nock = require("nock");
 const url = require("url");
 const jqUnit = require("node-jqunit");
@@ -199,7 +198,7 @@ jqUnit.test("Google SSO integration tests", async function () {
 
     // Test the successful workflows of "/sso/google" & "/sso/google/login/callback"
     // Success case 1: referer is not in the "/sso/google" request header
-    response = await fluid.tests.googleSso.sendAuthRequest(serverUrl, "/sso/google");
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google");
     fluid.tests.googleSso.testResponse(response, 200, "", "/sso/google");
     fluid.tests.googleSso.testNumOfRecords(
         "When the referer is not in the request header, referer_tracker table is not upated",
@@ -218,7 +217,7 @@ jqUnit.test("Google SSO integration tests", async function () {
     );
 
     // Success case 2: referer is Personal Data Server self domain
-    response = await fluid.tests.googleSso.sendAuthRequest(serverUrl, "/sso/google", {
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google", {
         "headers": {
             "referer": config.server.selfDomain
         }
@@ -242,7 +241,7 @@ jqUnit.test("Google SSO integration tests", async function () {
 
     // Success case 3: referer is from an external url that is not Personal Data Server self domain.
     // The response should redirect to the external url.
-    response = await fluid.tests.googleSso.sendAuthRequest(serverUrl, "/sso/google", {
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google", {
         "headers": {
             "referer": mockReferer
         }
@@ -336,17 +335,6 @@ fluid.tests.setupMockResponses = function (options, repeatTimes) {
         .times(repeatTimes)
         .query(true)
         .reply(200, mockUserInfo);
-};
-
-fluid.tests.googleSso.sendAuthRequest = async function (serverUrl, endpoint, options) {
-    options = options ? options : {};
-    // Send the auth request which uses the mock response.
-    console.debug("- Sending '%s'", endpoint);
-    try {
-        return await axios.get(serverUrl + endpoint, options);
-    } catch (e) {
-        return e.response;
-    }
 };
 
 fluid.tests.googleSso.fetchAccessToken = function (googleSso, code, dbOps, options, responseCode) {
