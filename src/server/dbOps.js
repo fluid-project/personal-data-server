@@ -303,6 +303,46 @@ class DataBaseRequest extends postgresOps.postgresOps {
 
         return loginTokenRecord.rows[0];
     };
+
+    /**
+     * Get preferences by the login token.
+     *
+     * @param {String} loginToken - The login token.
+     * @return {Object} The preferences that the login token is associated with.
+     */
+    async getPreferences(loginToken) {
+        const prefsRecord = await this.runSql(`
+            SELECT local_user.preferences
+            FROM local_user, sso_user_account, login_token
+            WHERE login_token.login_token = '${loginToken}'
+            AND login_token.expires_at is not NULL
+            AND login_token.expires_at > NOW()
+            AND login_token.sso_user_account_id = sso_user_account.sso_user_account_id
+            AND sso_user_account.user_id = local_user.user_id;
+        `);
+
+        return prefsRecord.rows[0] ? prefsRecord.rows[0].preferences : undefined;
+    };
+
+    /**
+     * Save preferences based on the given login token.
+     *
+     * @param {String} loginToken - The login token.
+     * @param {Object} preferences - The preferences to save.
+     * @return {Boolean} Return true if the update is successful. Otherwise, return false.
+     */
+    async savePrefsByLoginToken(loginToken, preferences) {
+        const prefsRecord = await this.runSql(`
+            UPDATE local_user
+            SET preferences = '${JSON.stringify(preferences)}'
+            FROM sso_user_account, login_token
+            WHERE login_token.login_token = '${loginToken}'
+            AND login_token.sso_user_account_id = sso_user_account.sso_user_account_id
+            AND sso_user_account.user_id = local_user.user_id;
+        `);
+
+        return prefsRecord.rowCount > 0;
+    };
 };
 
 module.exports = new DataBaseRequest(config.db);

@@ -32,23 +32,11 @@ fluid.registerNamespace("fluid.tests.googleSso");
 
 const skipDocker = process.env.SKIPDOCKER === "true" ? true : false;
 
-// The mock code returned via the redirect URI
-const mockAuthCode = "mock-auth-code";
-
-const mockAccessTokenInfo = {
-    access_token: "PatAccessToken.someRandomeString",
-    expires_in: 3600,
-    refresh_token: "anotherRandomString"
-};
-
 const mockAccessTokenInfoUpdated = {
     access_token: "UpdatedAccessToken.moreRandomeString",
     expires_in: 3600,
     refresh_token: "updatedRandomString"
 };
-
-// Mock referer URL of an external website
-const mockReferer = "https://external.site.com/about/";
 
 // Possible errors are "invalid_request", "invalid_client", "invalid_grant".
 // "unauthorized_client", "unsupported_grant_type", or "invalid_scope".
@@ -58,17 +46,6 @@ const mockReferer = "https://external.site.com/about/";
 const mockErrorResponse = {
     error: "invalid client",
     error_description: "The specified client is unknown"
-};
-
-const mockUserInfo = {
-    id: "PatId",
-    name: "Pat Smith",
-    email: "pat.smith@somewhere.com",
-    locale: "en",
-    picture: "https://lh3.googleusercontent.com/picture/url",
-    given_name: "Pat",
-    family_name: "Smith",
-    verified_email: true
 };
 
 // The record with the same user id will be updated rather than being added as a new record
@@ -82,9 +59,6 @@ const mockUserInfoUpdated = {
     family_name: "Smith Updated",
     verified_email: true
 };
-
-// Keep track of the payload returned by the auth request for consequent tests
-let authPayload;
 
 jqUnit.test("Google SSO unit tests", async function () {
     jqUnit.expect(skipDocker ? 55 : 57);
@@ -119,28 +93,28 @@ jqUnit.test("Google SSO unit tests", async function () {
 
     // Test "/ready" to ensure the server is up and running
     response = await fluid.tests.utils.sendRequest(serverUrl, "/ready");
-    fluid.tests.googleSso.testResponse(response, 200, { isReady: true }, "/ready (should succeed)");
+    fluid.tests.utils.testResponse(response, 200, { isReady: true }, "/ready (should succeed)");
 
     // Unit tests of individual functions
     // Test successful GoogleSso.fetchAccessToken() with mock /token endpoint
-    response = await fluid.tests.googleSso.fetchAccessToken(googleSso, mockAuthCode, dbOps, googleSso.options, 200);
-    fluid.tests.googleSso.testResponse(response, 200, mockAccessTokenInfo, "googleSso.fetchAccessToken(/token)");
+    response = await fluid.tests.googleSso.fetchAccessToken(googleSso, fluid.tests.utils.mockAuthCode, dbOps, googleSso.options, 200);
+    fluid.tests.utils.testResponse(response, 200, fluid.tests.utils.mockAccessTokenInfo, "googleSso.fetchAccessToken(/token)");
 
     // Test failure of GoogleSso.fetchAccessToken()
-    response = await fluid.tests.googleSso.fetchAccessToken(googleSso, mockAuthCode, dbOps, googleSso.options, 400);
-    fluid.tests.googleSso.testResponse(response, 400, mockErrorResponse, "googleSso.fetchAccessToken(/token)");
+    response = await fluid.tests.googleSso.fetchAccessToken(googleSso, fluid.tests.utils.mockAuthCode, dbOps, googleSso.options, 400);
+    fluid.tests.utils.testResponse(response, 400, mockErrorResponse, "googleSso.fetchAccessToken(/token)");
 
     // Test successful GoogleSso.fetchUserInfo() with mock /userInfo endpoint
-    response = await fluid.tests.googleSso.fetchUserInfo(googleSso, mockAccessTokenInfo, googleSso.options, 200);
-    fluid.tests.googleSso.testResponse(response, 200, mockUserInfo, "googleSso.fetchUserInfo(/userInfo)");
+    response = await fluid.tests.googleSso.fetchUserInfo(googleSso, fluid.tests.utils.mockAccessTokenInfo, googleSso.options, 200);
+    fluid.tests.utils.testResponse(response, 200, fluid.tests.utils.mockUserInfo, "googleSso.fetchUserInfo(/userInfo)");
 
     // Test failure GoogleSso.fetchUserInfo() with mock /userInfo endpoint
-    response = await fluid.tests.googleSso.fetchUserInfo(googleSso, mockAccessTokenInfo, googleSso.options, 400);
-    fluid.tests.googleSso.testResponse(response, 400, mockErrorResponse, "googleSso.fetchUserInfo(/userInfo)");
+    response = await fluid.tests.googleSso.fetchUserInfo(googleSso, fluid.tests.utils.mockAccessTokenInfo, googleSso.options, 400);
+    fluid.tests.utils.testResponse(response, 400, mockErrorResponse, "googleSso.fetchUserInfo(/userInfo)");
 
     // Test googleSso.storeUserAndAccessToken()
-    response = await fluid.tests.googleSso.storeUserAndAccessToken(googleSso, dbOps, mockUserInfo, mockAccessTokenInfo);
-    await fluid.tests.googleSso.testStoreUserAndAccessToken(response, dbOps, "googleSso.storeUserAndAccessToken()", googleSso.options, mockUserInfo, mockAccessTokenInfo);
+    response = await fluid.tests.googleSso.storeUserAndAccessToken(googleSso, dbOps, fluid.tests.utils.mockUserInfo, fluid.tests.utils.mockAccessTokenInfo);
+    await fluid.tests.googleSso.testStoreUserAndAccessToken(response, dbOps, "googleSso.storeUserAndAccessToken()", googleSso.options, fluid.tests.utils.mockUserInfo, fluid.tests.utils.mockAccessTokenInfo);
 
     // Recall googleSso.storeUserAndAccessToken() will update the old information
     response = await fluid.tests.googleSso.storeUserAndAccessToken(googleSso, dbOps, mockUserInfoUpdated, mockAccessTokenInfoUpdated);
@@ -191,22 +165,22 @@ jqUnit.test("Google SSO integration tests", async function () {
 
     // Test "/ready" to ensure the server is up and running
     response = await fluid.tests.utils.sendRequest(serverUrl, "/ready");
-    fluid.tests.googleSso.testResponse(response, 200, { isReady: true }, "/ready (should succeed)");
+    fluid.tests.utils.testResponse(response, 200, { isReady: true }, "/ready (should succeed)");
 
     // Setup mock responses from google, the OAuth provider
-    fluid.tests.setupMockResponses(googleSso.options, 3);
+    fluid.tests.utils.setupMockResponses(googleSso.options, 3);
 
     // Test the successful workflows of "/sso/google" & "/sso/google/login/callback"
     // Success case 1: referer is not in the "/sso/google" request header
     response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google");
-    fluid.tests.googleSso.testResponse(response, 200, "", "/sso/google");
+    fluid.tests.utils.testResponse(response, 200, "", "/sso/google");
     fluid.tests.googleSso.testNumOfRecords(
         "When the referer is not in the request header, referer_tracker table is not upated",
         dbOps, "referer_tracker", 0
     );
 
-    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + mockAuthCode + "&state=" + authPayload.state);
-    fluid.tests.googleSso.testResponse(response, 200, {accessToken: "\"PatAccessToken.someRandomeString\""}, "/sso/google/login/callback");
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + fluid.tests.utils.mockAuthCode + "&state=" + fluid.tests.utils.authPayload.state);
+    fluid.tests.utils.testResponse(response, 200, {accessToken: "\"PatAccessToken.someRandomeString\""}, "/sso/google/login/callback");
     fluid.tests.googleSso.testNumOfRecords(
         "When the referer is not in the request header, access token is generated",
         dbOps, "access_token", 1
@@ -222,14 +196,14 @@ jqUnit.test("Google SSO integration tests", async function () {
             "referer": config.server.selfDomain
         }
     });
-    fluid.tests.googleSso.testResponse(response, 200, "", "/sso/google");
+    fluid.tests.utils.testResponse(response, 200, "", "/sso/google");
     fluid.tests.googleSso.testNumOfRecords(
         "When the referer is Personal Data Server self domain, referer_tracker table is not upated",
         dbOps, "referer_tracker", 0
     );
 
-    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + mockAuthCode + "&state=" + authPayload.state);
-    fluid.tests.googleSso.testResponse(response, 200, {accessToken: "\"PatAccessToken.someRandomeString\""}, "/sso/google/login/callback");
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + fluid.tests.utils.mockAuthCode + "&state=" + fluid.tests.utils.authPayload.state);
+    fluid.tests.utils.testResponse(response, 200, {accessToken: "\"PatAccessToken.someRandomeString\""}, "/sso/google/login/callback");
     fluid.tests.googleSso.testNumOfRecords(
         "When the referer is Personal Data Server self domain, access token is generated",
         dbOps, "access_token", 1
@@ -243,16 +217,16 @@ jqUnit.test("Google SSO integration tests", async function () {
     // The response should redirect to the external url.
     response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google", {
         "headers": {
-            "referer": mockReferer
+            "referer": fluid.tests.utils.mockReferer
         }
     });
-    fluid.tests.googleSso.testResponse(response, 200, "", "/sso/google");
+    fluid.tests.utils.testResponse(response, 200, "", "/sso/google");
     fluid.tests.googleSso.testNumOfRecords(
         "When the referer is an external URL, referer_tracker table is upated",
         dbOps, "referer_tracker", 1
     );
 
-    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + mockAuthCode + "&state=" + authPayload.state);
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + fluid.tests.utils.mockAuthCode + "&state=" + fluid.tests.utils.authPayload.state);
     jqUnit.assertEquals("The response redirects to the mock referer", "external.site.com", response.hostname);
     fluid.tests.googleSso.testNumOfRecords(
         "When the referer is an external URL, referer_tracker record is removed after the verification",
@@ -268,22 +242,22 @@ jqUnit.test("Google SSO integration tests", async function () {
     );
 
     // Test failure of "/sso/google/login/callback" - wrong anti-forgery parameter
-    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + mockAuthCode + "&state=wrongState");
-    fluid.tests.googleSso.testResponse(response, 403, {
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + fluid.tests.utils.mockAuthCode + "&state=wrongState");
+    fluid.tests.utils.testResponse(response, 403, {
         isError: true,
         message: "Mismatched anti-forgery parameter"
-    }, "/sso/google/login/callback?code=" + mockAuthCode + "&state=wrongState");
+    }, "/sso/google/login/callback?code=" + fluid.tests.utils.mockAuthCode + "&state=wrongState");
 
     // Test failure of "/sso/google/login/callback" - Request missing authorization code
     response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?state=one-state-value");
-    fluid.tests.googleSso.testResponse(response, 403, {
+    fluid.tests.utils.testResponse(response, 403, {
         isError: true,
         message: "Request missing authorization code"
-    }, "/sso/google/login/callback?state=" + authPayload.state);
+    }, "/sso/google/login/callback?state=" + fluid.tests.utils.authPayload.state);
 
     // Test failure of "/sso/google/login/callback" -- when an error message is returned by Google
     response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?error=access_denied");
-    fluid.tests.googleSso.testResponse(response, 403, {"isError": true, "message": "The user does not approve the request. Error: access_denied"}, "/sso/google/login/callback");
+    fluid.tests.utils.testResponse(response, 403, {"isError": true, "message": "The user does not approve the request. Error: access_denied"}, "/sso/google/login/callback");
 
     if (!skipDocker) {
         // Stop the docker container for the database
@@ -297,46 +271,6 @@ jqUnit.test("Google SSO integration tests", async function () {
     jqUnit.assertFalse("The server has been stopped", serverStatus);
 });
 
-fluid.tests.googleSso.testResponse = function (response, expectedStatus, expected, endPoint) {
-    jqUnit.assertEquals("Check '" + endPoint + "' response status", expectedStatus, response.status);
-    jqUnit.assertDeepEq("Check '" + endPoint + "' result", expected, response.data);
-};
-
-fluid.tests.setupMockResponses = function (options, repeatTimes) {
-    nock.cleanAll();
-
-    // Mock Google's OAuth2 endpoint.  The request payload is stored in `authPayload` for subsequent tests.
-    nock("https://accounts.google.com")
-        .get("/o/oauth2/auth")
-        .times(repeatTimes)
-        .query(function (payload) {
-            authPayload = payload;
-            return true;
-        })
-        .reply(200);
-
-    // Mock Google's get access token endpoint.
-    const accessTokenURL = new url.URL(options.accessTokenUri);
-    nock(accessTokenURL.origin)
-        .post(accessTokenURL.pathname, {
-            grant_type: "authorization_code",
-            code: mockAuthCode,
-            redirect_uri: options.redirectUri,
-            client_id: "554291169960-repqllu9q9h5loog0hpadr6854fb2oq0.apps.dummy.com",
-            client_secret: "ek1k4RNTao8XY6gAmmOXxJ6m"
-        })
-        .times(repeatTimes)
-        .reply(200, mockAccessTokenInfo);
-
-    // Mock Google's get user info endpoint.
-    const userInfoURL = new url.URL(options.userInfoUri);
-    nock(userInfoURL.origin)
-        .get(userInfoURL.pathname)
-        .times(repeatTimes)
-        .query(true)
-        .reply(200, mockUserInfo);
-};
-
 fluid.tests.googleSso.fetchAccessToken = function (googleSso, code, dbOps, options, responseCode) {
     let mockResponse;
 
@@ -346,7 +280,7 @@ fluid.tests.googleSso.fetchAccessToken = function (googleSso, code, dbOps, optio
     case 200:
         mockResponse = {
             status: responseCode,
-            body: mockAccessTokenInfo
+            body: fluid.tests.utils.mockAccessTokenInfo
         };
         break;
     case 400:
@@ -373,7 +307,7 @@ fluid.tests.googleSso.fetchUserInfo = function (googleSso, accessToken, options,
     case 200:
         mockResponse = {
             status: responseCode,
-            body: mockUserInfo
+            body: fluid.tests.utils.mockUserInfo
         };
         break;
     case 400:

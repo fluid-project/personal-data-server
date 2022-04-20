@@ -18,6 +18,7 @@ const logger = require("morgan");
 
 const indexRouter = require("./routes/index.js");
 const ssoRouter = require("./routes/sso.js");
+const prefsRouter = require("./routes/prefs.js");
 const sessionStore = require("./sessionStore.js");
 
 const app = express();
@@ -26,9 +27,9 @@ app.use(logger("dev"));
 // Views
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "jade");
+app.use(express.json());
 
 // Express session
-
 app.use(expressSession({
     store: sessionStore,
     secret: "shhhh",
@@ -37,6 +38,7 @@ app.use(expressSession({
 
 // Endpoints
 app.use("/", indexRouter);
+app.use("/", prefsRouter);
 app.use("/sso", ssoRouter);
 
 // General endpoint for 404s
