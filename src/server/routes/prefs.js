@@ -78,7 +78,7 @@ router.post("/save_prefs", async function (req, res) {
     } else {
         res.status(403).json({"isError": true, "message": "Cannot save the incoming preferences."});
         return;
-    });
+    }
 });
 
 module.exports = router;

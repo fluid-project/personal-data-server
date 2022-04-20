@@ -9,7 +9,6 @@
 "use strict";
 
 const fluid = require("infusion");
-const axios = require("axios");
 const jqUnit = require("node-jqunit");
 
 require("../src/shared/driverUtils.js");
