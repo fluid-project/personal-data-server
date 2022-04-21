@@ -196,7 +196,6 @@ class GoogleSso {
      */
     async storeUserAndAccessToken(userInfo, accessTokenInfo, dbOps, provider, preferences) {
         // Find if the sso account already in sso_user_account table
-        console.log("=== userInfo: ", userInfo);
         let accessTokenRecord,
             ssoUserAccountRecord = await dbOps.getSsoUserAccount(userInfo.id, provider);
 
