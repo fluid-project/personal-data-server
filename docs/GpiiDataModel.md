@@ -1,9 +1,7 @@
 # Data Model
 
-This documentation describes the current data model used by the Personal Data
-Service.  It is based on the data model used in the [GPII project](https://wiki.gpii.net/w/Main_Page).
-GPII's data model was implemented using CouchDB but the Personal Data Service
-will use PostgresSQL.
+This is a legacy documentation describing the data model used in the [GPII project](https://wiki.gpii.net/w/Main_Page).
+GPII's data model was implemented using CouchDB.
 
 Diagrams below are drawn using [Entity Relationship Model](https://en.wikipedia.org/wiki/Entity–relationship_model).
 Arrows are used to express cardinality where a single line indicates
@@ -34,19 +32,19 @@ support the user management feature implemented using [fluid-express-user](https
 | prefsSafesId     | String                      | Required  | None    | Unique ID of this preferences safe. |
 | safeType         | enum of ["snapset", "user"] | Required  | "user"  | Indicates whether this preferences safe is allowed to be modified: the ones with "snapset" type are unmodifiable while the ones with "user" type are modifiable. |
 | name             | String                      | Optional  | null    | The user defined name for the corresponding preferences safe. A pair of “preference-safe-name and password” can potentially be used as a key. |
-| password         | String                      | Optional  | null    | The user defined password for this preferences safe. A “preference-safe-name and password” pair can potentially be used as a key. In the future data model, this field is moved to the "user" document that holds login information for the user management. |
+| password         | String                      | Optional  | null    | The user defined password for this preferences safe. A “preference-safe-name and password” pair can potentially be used as a key. In the future data model, this field is moved to the "Users" document that holds login information for the user management. |
 | email            | String                      | Optional  | null    | The user email. |
 | preferences      | Object                      | Required  | null    | The user preferences. Refer to the "More Document Field Examples and Explanations" section for an example of this field. |
 | timestampCreated | Date                        | Required  | now()   | The timestamp when the token is created. |
 | timestampUpdated | Date                        | Optional  | null    | The timestamp when the token is updated. |
 
-### user
+### Users
 
 Table of Records that contains information about users.
 
 | Name              | Type    | Required? | Default | Description |
 | ---               | ---     | ---       | ---     | ---         |
-| user_id            | String  | Required  | None    | The ID of the user record; references a user's Cloud Safe Credentials. |
+| userId            | String  | Required  | None    | The ID of the user record; references a user's Cloud Safe Credentials. |
 | name              | String  | Required  | None    | The name of the user. |
 | username          | String  | Required  | None    | The user name for login. |
 | derived_key       | String  | Required  | None    | The encrypted version of the password for login. |
@@ -72,7 +70,7 @@ This table contains information to associate users with their preferences safes
 | ---                | ---     | ---       | ---     | ---         |
 | id                 | String  | Required  | None    | The ID of these cloud safe credentials. |
 | prefsSafeId        | String  | Required  | None    | The ID of the preferences safe that is allowed to be accessed by the corresponding user login. |
-| user_id             | String  | Required  | None    | The user ID that is authorized to access the corresponding preferences safe. |
+| userId             | String  | Required  | None    | The user ID that is authorized to access the corresponding preferences safe. |
 | timestampCreated   | Date    | Required  | now()   | The timestamp when these credentials were created. |
 | timestampUpdated   | Date    | Optional  | null    | The timestamp when these credentials were updated. |
 | timestampRevoked   | Date    | Optional  | null    | The timestamp when these credentials were revoked. |
@@ -94,14 +92,14 @@ This table contains information to associate users with their preferences safes
 ### App Installation Clients
 
 - QUESTIONS:
-  - Do we want to support `user_id or prefsSafesKey`?  Keep for future expansion?
+  - Do we want to support `userId or prefsSafesKey`?  Keep for future expansion?
   - Should this be combined with the Cloud Safe Credentials?
 
 | Name                    | Type                                                       | Required? | Default | Description |
 | ---                     | ---                                                        | ---       | ---     | ---         |
 | clientId                | String                                                     | Required  | None    | The ID of this App Installation client. |
 | name                    | String                                                     | Required  | None    | The user provided client name. |
-| user_id or prefsSafesKey | String                                                     | Optional  | null    | The ID of the `User` or the `PrefsSafes` associated with this client. The intention of this field is to identify the person who manages this client. It's still in question whether this field should record user_id or prefsSafeSKey. |
+| userId or prefsSafesKey | String                                                     | Optional  | null    | The ID of the `User` or the `PrefsSafes` associated with this client. The intention of this field is to identify the person who manages this client. It's still in question whether this field should record userId or prefsSafeSKey. |
 | computerType            | enum of ["public", "private", "shared by trusted parties"] | Required  | None    | Type of computer where this app is installed. |
 | timestampCreated        | Date                                                       | Required  | now()   | The timestamp when the token is created. |
 | timestampUpdated        | Date                                                       | Optional  | null    | The timestamp when the token is updated. |
