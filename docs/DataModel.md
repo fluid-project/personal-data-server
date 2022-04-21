@@ -139,11 +139,11 @@ back to the referer URL when the authentication completes.
 ### SQL:
 
 ```postgresql
-CREATE TABLE "referer_tracker" (
-    "sso_state" VARCHAR(64) NOT NULL PRIMARY KEY,
-    "referer_origin" TEXT DEFAULT NULL,
-    "referer_url" TEXT DEFAULT NULL,
-    "created_timestamp" TIMESTAMPTZ NOT NULL
+CREATE TABLE referer_tracker (
+    sso_state VARCHAR(64) NOT NULL PRIMARY KEY,
+    referer_origin TEXT DEFAULT NULL,
+    referer_url TEXT DEFAULT NULL,
+    created_timestamp TIMESTAMPTZ NOT NULL
 );
 ```
 
@@ -167,14 +167,14 @@ user's `sso_user_account` and `sso_provider`.
 ### SQL:
 
 ```postgresql
-CREATE TABLE "login_token" (
-    "sso_user_account_id" INTEGER NOT NULL REFERENCES "sso_user_account" ("sso_user_account_id") ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-    "referer_origin" TEXT NOT NULL,
-    "login_token" VARCHAR(128) NOT NULL,
-    "expires_at" TIMESTAMPTZ NULL,
-    "created_timestamp" TIMESTAMPTZ NOT NULL,
-    "last_updated_timestamp" TIMESTAMPTZ NULL,
-    PRIMARY KEY ("sso_user_account_id", "referer_origin")
+CREATE TABLE login_token (
+    sso_user_account_id INTEGER NOT NULL REFERENCES sso_user_account (sso_user_account_id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    referer_origin TEXT NOT NULL,
+    login_token VARCHAR(128) NOT NULL,
+    expires_at TIMESTAMPTZ NULL,
+    created_timestamp TIMESTAMPTZ NOT NULL,
+    last_updated_timestamp TIMESTAMPTZ NULL,
+    PRIMARY KEY (sso_user_account_id, referer_origin)
 );
 ```
 
