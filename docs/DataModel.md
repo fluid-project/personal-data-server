@@ -12,13 +12,13 @@ provider itself is also stored here.
 
 | Name                     | Type    | Required?    | Default | Description |
 | ---                      | ---     | ---          | ---     | ---         |
-| `provider_id`            | Integer | __Required__ | None    | Primary key. The ID of this record |
-| `provider`               | String  | __Required__ | None    | User friendly name of the provider |
-| `name`                   | String  | __Required__ | None    | Name of the provider |
-| `client_id`              | String  | __Required__ | None    | Personal Data Server ID for this Provider |
-| `client_secret`          | String  | __Required__ | None    | Secret shared between the Personal Data Server and this Provider |
-| `created_timestamp`      | TimeStamp  | __Required__ | None    | The timestamp when the record was created |
-| `last_updated_timestamp` | TimeStamp  | __Optional__ | None    | The timestamp when the record was last updated |
+| provider_id            | Integer | __Required__ | None    | Primary key. The ID of this record |
+| provider               | String  | __Required__ | None    | User friendly name of the provider |
+| name                   | String  | __Required__ | None    | Name of the provider |
+| client_id              | String  | __Required__ | None    | Personal Data Server ID for this Provider |
+| client_secret          | String  | __Required__ | None    | Secret shared between the Personal Data Server and this Provider |
+| created_timestamp      | TimeStamp  | __Required__ | None    | The timestamp when the record was created |
+| last_updated_timestamp | TimeStamp  | __Optional__ | None    | The timestamp when the record was last updated |
 
 ### SQL:
 
@@ -46,8 +46,8 @@ PostgresSQL so the table name uses `user_account` instead of `user`. For now, th
 | ---                      | ---     | ---          | ---     | ---         |
 | user_account_id                  | String  | __Required__ | None    | Primary key. The ID of this record |
 | preferences              | JSONB   | __Optional__ | None    | The user preferences |
-| `created_timestamp`      | TimeStamp  | __Required__ | None    | The timestamp when the record was created |
-| `last_updated_timestamp` | TimeStamp  | __Optional__ | None    | The timestamp when the record was last updated |
+| created_timestamp      | TimeStamp  | __Required__ | None    | The timestamp when the record was created |
+| last_updated_timestamp | TimeStamp  | __Optional__ | None    | The timestamp when the record was last updated |
 
 SQL:
 
@@ -72,8 +72,8 @@ provider.  As such, they cross reference `user` and `sso_provider` records.
 | provider_id              | Integer | __Required__ | None    | Reference to the sso_provider record |
 | user_account_id                  | Integer | __Required__ | None    | Reference to the user_account record associated with the SSO user account |
 | user_info                | JSONB   | __Required__ | None    | Information returned by the SSO provider about the associated user |
-| `created_timestamp`      | TimeStamp | __Required__ | None    | The timestamp when the record was created |
-| `last_updated_timestamp` | TimeStamp | __Optional__ | None    | The timestamp when the record was last updated |
+| created_timestamp      | TimeStamp | __Required__ | None    | The timestamp when the record was created |
+| last_updated_timestamp | TimeStamp | __Optional__ | None    | The timestamp when the record was last updated |
 
 ### SQL:
 
@@ -103,8 +103,8 @@ user's `sso_user_account` and `sso_provider`.
 | access_token             | String     | __Required__ | None              | The access token returned by the SSO Provider for this SSO user |
 | expires_at               | TimeStamp  | __Required__ | One hour from now | The timestamp at which this `access_token` expires.  This Provider supplies the duration in seconds |
 | refresh_token            | String     | __Optional__ | Null              | The refresh token returned by the SSO Provider for refreshing this `access_token` |
-| `created_timestamp`      | TimeStamp  | __Required__ | None              | The timestamp when the record was created |
-| `last_updated_timestamp` | TimeStamp  | __Optional__ | None              | The timestamp when the record was last updated |
+| created_timestamp      | TimeStamp  | __Required__ | None              | The timestamp when the record was created |
+| last_updated_timestamp | TimeStamp  | __Optional__ | None              | The timestamp when the record was last updated |
 
 ### SQL:
 
