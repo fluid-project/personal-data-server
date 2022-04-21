@@ -98,7 +98,7 @@ class DataBaseRequest extends postgresOps.postgresOps {
      */
     async createUser(preferences) {
         const userRecord = await this.runSql(`
-            INSERT INTO local_user ("preferences", "created_timestamp")
+            INSERT INTO user_account ("preferences", "created_timestamp")
             VALUES ('${JSON.stringify(preferences)}', current_timestamp)
             RETURNING *;
         `);
@@ -109,15 +109,15 @@ class DataBaseRequest extends postgresOps.postgresOps {
      * Create a sso_user_account record associated with the given user record, or update an exising sso_user_account.
      * Return an object containing the new record.
      *
-     * @param {Number} userId - The corresponding local_user.user_id to associate with this new account.
+     * @param {Number} userAccountId - The corresponding user_account.user_account_id to associate with this new account.
      * @param {Object} userInfo - The user information provided by the SSO provider.
      * @param {String} provider - The SSO provider.
      * @return {Object} An object consisting of the sso user account record.
      */
-    async createSsoUserAccount(userId, userInfo, provider) {
+    async createSsoUserAccount(userAccountId, userInfo, provider) {
         const ssoAccountRecord = await this.runSql(`
-            INSERT INTO sso_user_account (user_id_from_provider, provider_id, user_id, user_info, created_timestamp)
-            SELECT '${userInfo.id}', provider_id, '${userId}', '${JSON.stringify(userInfo)}', current_timestamp
+            INSERT INTO sso_user_account (user_id_from_provider, provider_id, user_account_id, user_info, created_timestamp)
+            SELECT '${userInfo.id}', provider_id, '${userAccountId}', '${JSON.stringify(userInfo)}', current_timestamp
             FROM sso_provider
             WHERE provider = '${provider}'
             RETURNING *;
