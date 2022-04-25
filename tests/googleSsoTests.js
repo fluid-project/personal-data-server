@@ -359,16 +359,16 @@ fluid.tests.googleSso.testStoreUserAndAccessToken = async function (response, db
     // Check sso_user_account record in the database
     const ssoUserAccountRecord = await dbOps.runSql(`SELECT * FROM sso_user_account WHERE user_id_from_provider='${expectedUserInfo.id}' AND provider_id=(SELECT provider_id from sso_provider WHERE provider = '${ssoOptions.provider}');`);
     jqUnit.assertNotNull(`${checkPrefix} sso_user_account.provider_id`, ssoUserAccountRecord.rows[0].provider_id);
-    jqUnit.assertNotNull(`${checkPrefix} sso_user_account.user_id`, ssoUserAccountRecord.rows[0].user_id);
+    jqUnit.assertNotNull(`${checkPrefix} sso_user_account.user_account_id`, ssoUserAccountRecord.rows[0].user_account_id);
     jqUnit.assertDeepEq(`${checkPrefix} sso_user_account.user_info`, expectedUserInfo, ssoUserAccountRecord.rows[0].user_info);
     jqUnit.assertNotNull(`${checkPrefix} sso_user_account.created_timestamp`, ssoUserAccountRecord.rows[0].created_timestamp);
     jqUnit[isUpdate ? "assertNotNull" : "assertNull"](`${checkPrefix} sso_user_account.last_updated_timestamp`, ssoUserAccountRecord.rows[0].last_updated_timestamp);
 
-    // Check local_user record in the database
-    const userRecord = await dbOps.runSql(`SELECT * FROM local_user WHERE user_id='${ssoUserAccountRecord.rows[0].user_id}';`);
-    jqUnit.assertDeepEq(`${checkPrefix} local_user.preferences`, ssoOptions.defaultPreferences, userRecord.rows[0].preferences);
-    jqUnit.assertNotNull(`${checkPrefix} local_user.created_timestamp`, userRecord.rows[0].created_timestamp);
-    jqUnit.assertNull(`${checkPrefix} local_user.last_updated_timestamp`, userRecord.rows[0].last_updated_timestamp);
+    // Check user_account record in the database
+    const userRecord = await dbOps.runSql(`SELECT * FROM user_account WHERE user_account_id='${ssoUserAccountRecord.rows[0].user_account_id}';`);
+    jqUnit.assertDeepEq(`${checkPrefix} user_account.preferences`, ssoOptions.defaultPreferences, userRecord.rows[0].preferences);
+    jqUnit.assertNotNull(`${checkPrefix} user_account.created_timestamp`, userRecord.rows[0].created_timestamp);
+    jqUnit.assertNull(`${checkPrefix} user_account.last_updated_timestamp`, userRecord.rows[0].last_updated_timestamp);
 
     // Check access_token record in the database
     const accessTokenRecord = await dbOps.runSql(`SELECT * FROM access_token WHERE sso_user_account_id='${response.sso_user_account_id}';`);
@@ -380,7 +380,7 @@ fluid.tests.googleSso.testStoreUserAndAccessToken = async function (response, db
 };
 
 fluid.tests.cleanUpDb = async function (dbOps) {
-    console.debug("- Truncate tables: local_user, sso_user_account, access_token");
-    const deleteResult = await dbOps.runSql("TRUNCATE TABLE local_user CASCADE;");
+    console.debug("- Truncate tables: user_account, sso_user_account, access_token");
+    const deleteResult = await dbOps.runSql("TRUNCATE TABLE user_account CASCADE;");
     return deleteResult;
 };

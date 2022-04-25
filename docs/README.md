@@ -14,4 +14,4 @@ that it is made from.
 
 ## Legacy Documentation
 
-* [GPII Data Model for Accessing Preferences](GpiiDataModel.md)
+* [The Legacy GPII Data Model](GpiiDataModel.md)

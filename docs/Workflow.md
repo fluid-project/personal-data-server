@@ -170,7 +170,7 @@ The Personal Data Server compares the given `loginToken` against the one(s) in i
 database:
 
 * If it finds a match, it cross references that record against the corresponding
-`local_user` record, and retrieves the `preferences` from that record.
+`user_account` record, and retrieves the `preferences` from that record.
 * If it doesn't find a match, it redirects to the Personal Data Server login API
 `GET /<Personal Data Server>/sso/google`.
 
