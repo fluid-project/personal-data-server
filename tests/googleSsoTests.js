@@ -261,7 +261,7 @@ jqUnit.test("Google SSO integration tests", async function () {
 
     if (!skipDocker) {
         // Stop the docker container for the database
-        response = await fluid.personalData.dockerStopDatabase(config.db.dbContainerName, dbOps);
+        response = await fluid.personalData.dockerStopDatabase(config.db.dbContainerName);
         jqUnit.assertTrue("The database docker container has been stopped", response.dbStopped);
     }
 

@@ -14,6 +14,7 @@
 const express = require("express");
 const router = express.Router();
 const dbOps = require("../dbOps.js");
+const sizeLimitOfPrefsObject = 1024;   // The size limit of an preferences object is 1K
 
 /**
  * Get preferences API
@@ -61,15 +62,21 @@ router.post("/save_prefs", async function (req, res) {
         return;
     }
 
-    // Verify the login token
-    const preferences = await dbOps.getPreferences(req.body.loginToken);
+    // Verify if the login token is valid
+    const prevPrefs = await dbOps.getPreferences(req.body.loginToken);
 
-    if (!preferences) {
+    if (!prevPrefs) {
         res.status(403).json({"isError": true, "message": "Invalid login token. Please login."});
         return;
     }
 
-    // TODO: how to verify the preferences object.
+    // Verify the size of the preferences object
+    const sizeOfPrefs = calcSizeOfObject(req.body.preferences);
+
+    if (sizeOfPrefs > sizeLimitOfPrefsObject) {
+        res.status(403).json({"isError": true, "message": "The size of preferences exceeds the limit."});
+        return;
+    }
 
     const isSuccess = await dbOps.savePrefsByLoginToken(req.body.loginToken, req.body.preferences);
 
@@ -80,5 +87,35 @@ router.post("/save_prefs", async function (req, res) {
         return;
     }
 });
+
+/**
+ * Calculate the size of an object
+ * See https://stackoverflow.com/questions/1248302/how-to-get-the-size-of-a-javascript-object#11900218
+ *
+ * @param {Object} object - The object.
+ * @return {Number} The calculated size in byte.
+ */
+const calcSizeOfObject = function (object) {
+    let objectList = [];
+    let stack = [object];
+    let bytes = 0;
+
+    while (stack.length) {
+        let value = stack.pop();
+        if (typeof value === "boolean") {
+            bytes += 4;
+        } else if (typeof value === "string") {
+            bytes += value.length * 2;
+        } else if (typeof value === "number") {
+            bytes += 8;
+        } else if (typeof value === "object" && objectList.indexOf(value) === -1) {
+            objectList.push(value);
+            for (let i in value) {
+                stack.push(value[i]);
+            }
+        }
+    }
+    return bytes;
+};
 
 module.exports = router;

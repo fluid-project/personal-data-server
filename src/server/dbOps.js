@@ -312,13 +312,13 @@ class DataBaseRequest extends postgresOps.postgresOps {
      */
     async getPreferences(loginToken) {
         const prefsRecord = await this.runSql(`
-            SELECT local_user.preferences
-            FROM local_user, sso_user_account, login_token
+            SELECT user_account.preferences
+            FROM user_account, sso_user_account, login_token
             WHERE login_token.login_token = '${loginToken}'
             AND login_token.expires_at is not NULL
             AND login_token.expires_at > NOW()
             AND login_token.sso_user_account_id = sso_user_account.sso_user_account_id
-            AND sso_user_account.user_id = local_user.user_id;
+            AND sso_user_account.user_account_id = user_account.user_account_id;
         `);
 
         return prefsRecord.rows[0] ? prefsRecord.rows[0].preferences : undefined;
@@ -333,12 +333,12 @@ class DataBaseRequest extends postgresOps.postgresOps {
      */
     async savePrefsByLoginToken(loginToken, preferences) {
         const prefsRecord = await this.runSql(`
-            UPDATE local_user
+            UPDATE user_account
             SET preferences = '${JSON.stringify(preferences)}'
             FROM sso_user_account, login_token
             WHERE login_token.login_token = '${loginToken}'
             AND login_token.sso_user_account_id = sso_user_account.sso_user_account_id
-            AND sso_user_account.user_id = local_user.user_id;
+            AND sso_user_account.user_account_id = user_account.user_account_id;
         `);
 
         return prefsRecord.rowCount > 0;

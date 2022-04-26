@@ -18,7 +18,10 @@ const testIncludes = [
     "./healthReadyTests.js",
 
     // Test Google single sign on
-    "./googleSsoTests.js"
+    "./googleSsoTests.js",
+
+    // Test preferences API
+    "./prefsApiTests.js"
 ];
 
 testIncludes.forEach(function (path) {
