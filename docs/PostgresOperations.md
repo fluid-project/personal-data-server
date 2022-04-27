@@ -56,7 +56,7 @@ for logging errors.  The `sql` parameter can be a single SQL command or a
 semi-colon separated list of commands.  An example of the former is:
 
 ``` .sql
-SELECT * FROM users WHERE "userId" = 'carla';
+SELECT * FROM user_account WHERE "user_account_id" = 1;
 ```
 
 An example of the latter is:

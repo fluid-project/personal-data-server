@@ -50,12 +50,12 @@ const sqlFile = __dirname + "/data/createInsertPrefs.sql";
 const testData = {
     userToInsert: `
         INSERT INTO users
-                   ("userId",                iterations, username, name,    email,             roles,      derived_key,                                salt,                               verification_code, verified)
+                   ("user_id",                iterations, username, name,    email,             roles,      derived_key,                                salt,                               verification_code, verified)
             VALUES ('another.user:nonadmin', 0,          'carla',  'carla', 'carla@localhost', '{"user"}', '9ff4bc1c1846181d303971b08b65122a45174d04', '2653c80aabd3889c3dfd6e198d3dca93', 'carlaIsVerified', true)
             RETURNING *;
         `,
     userToInsertJSON: {
-        "userId": "another.user:nonadmin",
+        "user_id": "another.user:nonadmin",
         "iterations": 0,
         "username": "carla",
         "name": "carla",
@@ -71,13 +71,13 @@ const testData = {
     userChanges: `
         UPDATE users
             SET verified=false, email='carla@globalhost'
-            WHERE "userId"='another.user:nonadmin'
+            WHERE "user_id"='another.user:nonadmin'
             RETURNING *;
     `,
     primaryKeyChange: `
         UPDATE users
-            SET "userId"='some.new.id'
-            WHERE "userId"='another.user:nonadmin'
+            SET "user_id"='some.new.id'
+            WHERE "user_id"='another.user:nonadmin'
             RETURNING *;
     `
 };
@@ -89,7 +89,7 @@ const expected = {
     ),
     primaryKeyChange: fluid.extend(
         true, {}, testData.userToInsertJSON,
-        { userId: "some.new.id", verified: false, email: "carla@globalhost" }
+        { user_id: "some.new.id", verified: false, email: "carla@globalhost" }
     )
 };
 
@@ -209,11 +209,11 @@ jqUnit.test("Database operations tests", async function () {
     fluid.tests.utils.checkKeyValuePairs(Object.keys(expected.primaryKeyChange), response.rows[0], expected.primaryKeyChange, "Check update results");
 
     // Update with non-existent primary key; should return zero results
-    response = await postgresHandler.runSql("UPDATE users SET iterations=55 WHERE \"userId\"='noSuchUser';");
+    response = await postgresHandler.runSql("UPDATE users SET iterations=55 WHERE \"user_id\"='noSuchUser';");
     jqUnit.assertEquals("Check UPDATE with mismatched primaryKey", 0, response.rowCount);
 
     // Test successful deletion
-    response = await postgresHandler.runSql("DELETE FROM \"users\" WHERE \"userId\"='some.new.id';");
+    response = await postgresHandler.runSql("DELETE FROM \"users\" WHERE \"user_id\"='some.new.id';");
     // response = await postgresHandler.runSql("DELETE FROM \"prefsSafes\" WHERE \"prefsSafesId\"='prefsSafe-1';");
     jqUnit.assertEquals("Check number of records deleted", 1, response.rowCount);
 

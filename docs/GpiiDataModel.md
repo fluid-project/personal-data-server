@@ -1,9 +1,7 @@
 # Data Model
 
-This documentation describes the current data model used by the Personal Data
-Service.  It is based on the data model used in the [GPII project](https://wiki.gpii.net/w/Main_Page).
-GPII's data model was implemented using CouchDB but the Personal Data Service
-will use PostgresSQL.
+This is a legacy documentation describing the data model used in the [GPII project](https://wiki.gpii.net/w/Main_Page).
+GPII's data model was implemented using CouchDB.
 
 Diagrams below are drawn using [Entity Relationship Model](https://en.wikipedia.org/wiki/Entity–relationship_model).
 Arrows are used to express cardinality where a single line indicates

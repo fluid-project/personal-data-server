@@ -8,12 +8,12 @@ downloaded and save as "RefreshTokenWorkflow.png".
 title Refresh Token Workflow
 
 UIO->Edge Proxy: 4i) make local authorized requests (e.g. /preferences) passing loginToken in Header
-Edge Proxy->Preferences Server: 4ii) redirect to prefs server resource
-note left of Preferences Server: 5i) check against stored loginToken and expiry
-Preferences Server->Google (SSO): 5ii) refresh access token using /token request
+Edge Proxy->Personal Data Server: 4ii) redirect to prefs server resource
+note left of Personal Data Server: 5i) check against stored loginToken and expiry
+Personal Data Server->Google (SSO): 5ii) refresh access token using /token request
 note left of Google (SSO): 5iii) only if access_token and loginToken have expired
-Google (SSO)->Preferences Server: 5iv) return new access token response
-note left of Preferences Server: 5v) compute new loginToken if old one expired
-Preferences Server->Edge Proxy: 4iv) return response; payload contains (new) loginToken
+Google (SSO)->Personal Data Server: 5iv) return new access token response
+note left of Personal Data Server: 5v) compute new loginToken if old one expired
+Personal Data Server->Edge Proxy: 4iv) return response; payload contains (new) loginToken
 Edge Proxy->UIO: 4v) return response; payload contains (new) loginToken
 ```

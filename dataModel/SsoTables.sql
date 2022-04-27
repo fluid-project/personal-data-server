@@ -10,43 +10,41 @@
 -- https://github.com/fluid-project/personal-data-server/blob/main/LICENSE
 
 -- SSO Provider
-CREATE TABLE "AppSsoProvider" (
-    "providerId" SERIAL NOT NULL PRIMARY KEY,
-    "provider" varchar(30) NOT NULL,
-    "name" varchar(40) NOT NULL,
-    "client_id" varchar(191) NOT NULL,
-    "client_secret" varchar(191) NOT NULL
+CREATE TABLE sso_provider (
+    provider_id SERIAL NOT NULL PRIMARY KEY,
+    provider varchar(30) NOT NULL,
+    name varchar(40) NOT NULL,
+    client_id varchar(191) NOT NULL,
+    client_secret varchar(191) NOT NULL,
+    created_timestamp TIMESTAMPTZ NULL,
+    last_updated_timestamp TIMESTAMPTZ NULL
 );
 
--- User
-CREATE TABLE "User" (
-    "userId" VARCHAR(64) PRIMARY KEY NOT NULL,
-    name VARCHAR(64) NOT NULL,
-    username VARCHAR(64) NOT NULL,
-    derived_key VARCHAR(255) NOT NULL,
-    verification_code VARCHAR(255) NOT NULL,
-    salt VARCHAR(255) NOT NULL,
-    iterations INT NOT NULL,
-    email VARCHAR(32) NOT NULL,
-    roles VARCHAR(16)[] NOT NULL,
-    verified BOOLEAN NOT NULL DEFAULT false
+-- user_account
+CREATE TABLE user_account (
+    user_account_id SERIAL PRIMARY KEY NOT NULL,
+    preferences JSONB NULL,
+    created_timestamp TIMESTAMPTZ NOT NULL,
+    last_updated_timestamp TIMESTAMPTZ NULL
 );
 
--- SSO Account
-CREATE TABLE "SsoAccount" (
-    "ssoAccountId" SERIAL NOT NULL PRIMARY KEY,
-    "user" VARCHAR(64) NOT NULL REFERENCES "User" ("userId") ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-    "provider" INTEGER NOT NULL REFERENCES "AppSsoProvider" ("providerId") ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-    "userInfo" JSONB NOT NULL
+-- SSO Accounts
+CREATE TABLE sso_user_account (
+    sso_user_account_id SERIAL PRIMARY KEY NOT NULL,
+    user_id_from_provider varchar(64) NOT NULL,
+    provider_id INTEGER NOT NULL REFERENCES sso_provider (provider_id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    user_account_id INTEGER NOT NULL REFERENCES user_account (user_account_id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    user_info JSONB NOT NULL,
+    created_timestamp TIMESTAMPTZ NOT NULL,
+    last_updated_timestamp TIMESTAMPTZ NULL
 );
 
--- Access Token from SSO Provider
-CREATE TABLE "AccessToken" (
-    "id" SERIAL NOT NULL PRIMARY KEY,
-    "ssoAccount" INTEGER NOT NULL REFERENCES "SsoAccount" ("ssoAccountId") ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-    "ssoProvider" INTEGER NOT NULL REFERENCES "AppSsoProvider" ("providerId") ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-    "accessToken" TEXT NOT NULL,
-    "expiresAt" TIMESTAMPTZ NULL,
-    "refreshToken" TEXT DEFAULT NULL,
-    "loginToken" TEXT NOT NULL
+-- Access Tokens responded from SSO Providers for SSO user accounts
+CREATE TABLE access_token (
+    sso_user_account_id INTEGER PRIMARY KEY NOT NULL REFERENCES sso_user_account (sso_user_account_id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    access_token TEXT NOT NULL,
+    expires_at TIMESTAMPTZ NULL,
+    refresh_token TEXT DEFAULT NULL,
+    created_timestamp TIMESTAMPTZ NOT NULL,
+    last_updated_timestamp TIMESTAMPTZ NULL
 );
