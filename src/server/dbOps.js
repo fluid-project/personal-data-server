@@ -91,10 +91,10 @@ class DataBaseRequest extends postgresOps.postgresOps {
     };
 
     /**
-     * Save the mapping between the SSO state and the referer origin in the table for future look up
+     * Save the mapping between the state token and the referer origin in the table for future look up
      * of the referer origin.
      *
-     * @param {String} ssoState - The SSO state.
+     * @param {String} ssoState - The state token.
      * @param {String} refererOrigin - The referer origin. An example is: https://idrc.ocadu.ca
      * @param {String} refererUrl - The referer URL. An example is: https://idrc.ocadu.ca/about/
      * @return {Object|null} the newly created record.
@@ -119,28 +119,38 @@ class DataBaseRequest extends postgresOps.postgresOps {
     };
 
     /**
-     * Get the referer origin of the given SSO state.
+     * User account record
+     * @typedef {Object} refererTrackerRecord
+     * @property {Number} sso_state The anti-forgery state token.
+     * @property {String} referer_origin The referer origin.
+     * @property {String} referer_url The referer URL.
+     * @property {Date} created_timestamp The timestamp when the record is created.
+     */
+
+    /**
+     * Get the referer tracker record of the given state token.
      *
-     * @param {String} ssoState - The SSO state.
-     * @return {String} return the referer origin linked with the given SSO state. Return null if the record
+     * @param {String} ssoState - The state token.
+     * @return {refererTrackerRecord} return the referer tracker record linked with the given state token.
+     *         Return null if the record
      * is not found.
      */
-    async getSsoState(ssoState) {
-        const ssoStateRecord = await this.runSql(`
+    async getRefererTracker(ssoState) {
+        const refererTrackerRecord = await this.runSql(`
             SELECT * FROM referer_tracker WHERE sso_state = '${ssoState}';
         `);
 
-        return ssoStateRecord.rowCount > 0 ? ssoStateRecord.rows[0] : null;
+        return refererTrackerRecord.rowCount > 0 ? refererTrackerRecord.rows[0] : null;
     };
 
     /**
-     * Save the mapping between the SSO state and the referer origin in the table for future look up
+     * Save the mapping between the state token and the referer origin in the table for future look up
      * of the referer origin.
      *
-     * @param {String} ssoState - The SSO state.
+     * @param {String} ssoState - The state token.
      * @return {Boolean} return true if the record is deleted. Otherwise, return false.
      */
-    async deleteSsoState(ssoState) {
+    async deleteRefererTracker(ssoState) {
         const refererOriginRecord = await this.runSql(`
             DELETE FROM referer_tracker WHERE sso_state = '${ssoState}' RETURNING *;
         `);
@@ -149,10 +159,19 @@ class DataBaseRequest extends postgresOps.postgresOps {
     };
 
     /**
+     * User account record
+     * @typedef {Object} userAccountRecord
+     * @property {Number} user_account_id The user account id.
+     * @property {Object} preferences The user preferences.
+     * @property {Date} created_timestamp The timestamp when the record is created.
+     * @property {Date} last_updated_timestamp The timestamp when the record is last updated.
+     */
+
+    /**
      * Create a user record. The preferences uses a mock constant for now.
      *
      * @param {Object} preferences - The user preferences.
-     * @return {Object} the newly created record.
+     * @return {userAccountRecord} the newly created user account record.
      */
     async createUser(preferences) {
         const newRecord = await this.runSql(`
@@ -165,13 +184,38 @@ class DataBaseRequest extends postgresOps.postgresOps {
     };
 
     /**
+     * User information
+     * @typedef {Object} userInfo
+     * @property {String} id The user id from the SSO provider.
+     * @property {String} email The email.
+     * @property {Boolean} verified_email Whether the email is verified.
+     * @property {String} name The user name.
+     * @property {String} given_name User's given name.
+     * @property {String} family_name User's family name.
+     * @property {String} picture The URL to the user's profile picture.
+     * @property {String} locale The locale.
+     */
+
+    /**
+     * SSO user account record
+     * @typedef {Object} ssoUserAccountRecord
+     * @property {Number} sso_user_account_id The SSO user account id.
+     * @property {String} user_id_from_provider The user id from the SSO provider.
+     * @property {Number} provider_id The provider id.
+     * @property {Number} user_account_id The user account id.
+     * @property {userInfo} userInfo - The user information provided by the SSO provider.
+     * @property {Date} created_timestamp The timestamp when the record is created.
+     * @property {Date} last_updated_timestamp The timestamp when the record is last updated.
+     */
+
+    /**
      * Create a sso_user_account record associated with the given user record, or update an exising sso_user_account.
      * Return an object containing the new record.
      *
      * @param {Number} userAccountId - The corresponding user_account.user_account_id to associate with this new account.
-     * @param {Object} userInfo - The user information provided by the SSO provider.
+     * @param {userInfo} userInfo - The user information provided by the SSO provider.
      * @param {String} provider - The SSO provider.
-     * @return {Object} An object consisting of the sso user account record.
+     * @return {ssoUserAccountRecord} An object consisting of the sso user account record.
      */
     async createSsoUserAccount(userAccountId, userInfo, provider) {
         const newRecord = await this.runSql(`
@@ -189,8 +233,8 @@ class DataBaseRequest extends postgresOps.postgresOps {
      * Update a sso_user_account record. Return an object containing the updated record.
      *
      * @param {Number} ssoUserAccountId - The sso_user_account.sso_user_account_id.
-     * @param {Object} userInfo - The user information provided by the SSO provider.
-     * @return {Object} An object consisting of the sso user account record.
+     * @param {userInfo} userInfo - The user information provided by the SSO provider.
+     * @return {ssoUserAccountRecord} An object consisting of the sso user account record.
      */
     async updateSsoUserAccount(ssoUserAccountId, userInfo) {
         const ssoAccountRecord = await this.runSql(`
@@ -204,11 +248,30 @@ class DataBaseRequest extends postgresOps.postgresOps {
     };
 
     /**
+     * Access token record
+     * @typedef {Object} accessTokenInfo
+     * @property {String} access_token The access token from the SSO provider.
+     * @property {String} refresh_token The refresh token from the SSO provider.
+     * @property {Date} expires_in The remaining lifetime in seconds.
+     */
+
+    /**
+     * Access token record
+     * @typedef {Object} accessTokenRecord
+     * @property {Number} sso_user_account_id The SSO user account id.
+     * @property {String} access_token The access token from the SSO provider.
+     * @property {Date} expires_at The timestamp at which this `access_token` expires.
+     * @property {String} refresh_token The refresh token from the SSO provider.
+     * @property {Date} created_timestamp The timestamp when the record is created.
+     * @property {Date} last_updated_timestamp The timestamp when the record is last updated.
+     */
+
+    /**
      * Create a new access_token record. Return an object containing the new record.
      *
      * @param {Number} ssoUserAccountId - The sso user account id that the access token record is created for.
-     * @param {Object} accessTokenInfo - Access token information object provided by the SSO provider.
-     * @return {Object} An object consisting of the access token record for the given sso user account.
+     * @param {accessTokenInfo} accessTokenInfo - Access token information object provided by the SSO provider.
+     * @return {accessTokenRecord} An object consisting of the access token record for the given sso user account.
      */
     async createAccessToken(ssoUserAccountId, accessTokenInfo) {
         const expiryTimestamp = utils.calculateExpiredInTimestamp(accessTokenInfo.expires_in);
@@ -226,8 +289,8 @@ class DataBaseRequest extends postgresOps.postgresOps {
      * Update a access_token record. Return an object containing the updated record.
      *
      * @param {Number} ssoUserAccountId - The sso user account id that the access token record is created for.
-     * @param {Object} accessTokenInfo - Access token information object provided by the SSO provider.
-     * @return {Object} An object consisting of the access token record for the given sso user account.
+     * @param {accessTokenInfo} accessTokenInfo - Access token information object provided by the SSO provider.
+     * @return {accessTokenRecord} An object consisting of the access token record for the given sso user account.
      */
     async updateAccessToken(ssoUserAccountId, accessTokenInfo) {
         const expiryTimestamp = utils.calculateExpiredInTimestamp(accessTokenInfo.expires_in);
@@ -246,11 +309,23 @@ class DataBaseRequest extends postgresOps.postgresOps {
     };
 
     /**
+     * Login token record
+     * @typedef {Object} loginTokenRecord
+     * @property {Number} sso_user_account_id The SSO user account id.
+     * @property {String} referer_origin The referer domain of an external website calling Personal Data Server API.
+     * @property {String} login_token The login token returned to the external website for its future access to
+     *                    Personal Data Server API.
+     * @property {Date} expires_at The timestamp at which this `login_token` expires.
+     * @property {Date} created_timestamp The timestamp when the record is created.
+     * @property {Date} last_updated_timestamp The timestamp when the record is last updated.
+     */
+
+    /**
      * Get a login_token record of a SSO user account for a referer origin.
      *
      * @param {Number} ssoUserAccountId - The sso user account id that the login token record is created for.
-     * @param {Object} refererOrigin - The referer origin where the SSO user sends the request from.
-     * @return {Object} An object consisting of the login token record.
+     * @param {String} refererOrigin - The referer origin where the SSO user sends the request from.
+     * @return {loginTokenRecord} An object consisting of the login token record.
      */
     async getLoginToken(ssoUserAccountId, refererOrigin) {
         const loginTokenRecord = await this.runSql(`
@@ -266,10 +341,10 @@ class DataBaseRequest extends postgresOps.postgresOps {
      * Create a login_token record. Return an object containing the saved record.
      *
      * @param {Number} ssoUserAccountId - The sso user account id that the login token record is created for.
-     * @param {Object} refererOrigin - The referer origin where the SSO user sends the request from.
-     * @param {Object} loginToken - The login token.
-     * @param {Object} expiresAt - The timestamp that the login token expires at.
-     * @return {Object} An object consisting of the login token record.
+     * @param {String} refererOrigin - The referer origin where the SSO user sends the request from.
+     * @param {String} loginToken - The login token.
+     * @param {Date} expiresAt - The timestamp that the login token expires at.
+     * @return {loginTokenRecord} An object consisting of the login token record.
      */
     async createLoginToken(ssoUserAccountId, refererOrigin, loginToken, expiresAt) {
         const newRecord = await this.runSql(`
@@ -285,10 +360,10 @@ class DataBaseRequest extends postgresOps.postgresOps {
      * Update a login_token record. Return an object containing the updated record.
      *
      * @param {Number} ssoUserAccountId - The sso user account id that the login token record is created for.
-     * @param {Object} refererOrigin - The referer origin where the SSO user sends the request from.
-     * @param {Object} loginToken - The login token.
-     * @param {Object} expiresAt - The timestamp that the login token expires at.
-     * @return {Object} An object consisting of the login token record.
+     * @param {String} refererOrigin - The referer origin where the SSO user sends the request from.
+     * @param {String} loginToken - The login token.
+     * @param {Date} expiresAt - The timestamp that the login token expires at.
+     * @return {loginTokenRecord} An object consisting of the login token record.
      */
     async updateLoginToken(ssoUserAccountId, refererOrigin, loginToken, expiresAt) {
         const loginTokenRecord = await this.runSql(`

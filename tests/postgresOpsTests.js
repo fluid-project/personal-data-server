@@ -29,7 +29,7 @@ jqUnit.module("PostgresDB operations unit tests.");
 
 fluid.registerNamespace("fluid.tests.dbOps");
 
-const skipDocker = process.env.SKIPDOCKER === "true" ? true : false;
+const skipDocker = process.env.PDS_SKIPDOCKER === "true" ? true : false;
 const config = require("../src/shared/utils.js").loadConfig(path.join(__dirname, "testConfig.json5"));
 
 const parameterizedInsert = `

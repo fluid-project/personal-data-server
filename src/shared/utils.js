@@ -37,7 +37,7 @@ const generateRandomToken = function (length) {
  * Convert a expires_in value in seconds to a postgres compatible timestamp.
  *
  * @param {Integer} seconds - The remaining lifetime in seconds.
- * @return {String} a timestamp in a format of "2022-03-14 19:54:25.618119+00".
+ * @return {Date} a timestamp in a format of "2022-03-14 19:54:25.618119+00".
  */
 const calculateExpiredInTimestamp = function (seconds) {
     return new Date(Date.now() + (seconds * 1000));
@@ -55,18 +55,18 @@ const loadConfig = function (configFile) {
 
     return {
         server: {
-            port: process.env.SERVERPORT || config.server.port,
-            loginTokenExpiresIn: process.env.LOGINTOKENEXPIRESIN || config.server.loginTokenExpiresIn,
+            port: process.env.PDS_SERVERPORT || config.server.port,
+            loginTokenExpiresIn: process.env.PDS_LOGINTOKENEXPIRESIN || config.server.loginTokenExpiresIn,
             selfDomain: config.server.selfDomain
         },
         db: {
             dbContainerName: config.db.dbContainerName,
             dbDockerImage: config.db.dbDockerImage,
-            database: process.env.DATABASE || config.db.database,
-            port: process.env.DBPORT || config.db.port,
-            host: process.env.DBHOST || config.db.host,
-            user: process.env.DBUSER || config.db.user,
-            password: process.env.DBPASSWORD || config.db.password
+            database: process.env.PDS_DATABASE || config.db.database,
+            port: process.env.PDS_DBPORT || config.db.port,
+            host: process.env.PDS_DBHOST || config.db.host,
+            user: process.env.PDS_DBUSER || config.db.user,
+            password: process.env.PDS_DBPASSWORD || config.db.password
         }
     };
 };
