@@ -12,6 +12,7 @@
 "use strict";
 
 const express = require("express");
+const path = require("path");
 const router = express.Router();
 const dbOps = require("../dbOps.js");
 
@@ -19,7 +20,7 @@ const dbOps = require("../dbOps.js");
  * Home page.
  */
 router.get("/", function (req, res) {
-    res.render("index", { title: "Personal Data Server" });
+    res.sendFile(path.join(__dirname + "/../views/index.html"));
 });
 
 /**
