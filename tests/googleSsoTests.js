@@ -30,7 +30,7 @@ jqUnit.module("Personal Data Server Google SSO Tests");
 
 fluid.registerNamespace("fluid.tests.googleSso");
 
-const skipDocker = process.env.SKIPDOCKER === "true" ? true : false;
+const skipDocker = process.env.PDS_SKIPDOCKER === "true" ? true : false;
 
 const mockAccessTokenInfoUpdated = {
     access_token: "UpdatedAccessToken.moreRandomeString",

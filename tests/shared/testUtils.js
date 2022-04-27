@@ -24,11 +24,11 @@ fluid.tests.sqlFiles = {
 };
 
 fluid.tests.utils.setDbEnvVars = function (dbConfig) {
-    process.env.DATABASE = dbConfig.database;
-    process.env.DBHOST = dbConfig.host;
-    process.env.DBPORT = dbConfig.port;
-    process.env.DBUSER = dbConfig.user;
-    process.env.DBPASSWORD = dbConfig.password;
+    process.env.PDS_DATABASE = dbConfig.database;
+    process.env.PDS_DBHOST = dbConfig.host;
+    process.env.PDS_DBPORT = dbConfig.port;
+    process.env.PDS_DBUSER = dbConfig.user;
+    process.env.PDS_DBPASSWORD = dbConfig.password;
 };
 
 /**

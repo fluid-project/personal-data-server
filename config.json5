@@ -2,13 +2,13 @@
     // Express app configs
     server: {
         // The port that the personal data server will listen to.
-        // Can be overridden by the value defined in the environment variable SERVERPORT
+        // Can be overridden by the value defined in the environment variable PDS_SERVERPORT
         port: 3000,
-        // The lifetime of login tokens in second. The default value is 24 hours.
+        // The lifetime of login tokens in seconds. The default value is 24 hours.
         loginTokenExpiresIn: 86400,
         // The domain that Personal Data Server uses. Referer URL of this domain is not tracked
         // when SSO endpoints are called as the request is not issued externally.
-        // Note that the trailing slash should be removed.
+        // Note that a trailing slash should not be included.
         selfDomain: "http://localhost:3000"
     },
 
@@ -19,19 +19,19 @@
         // The postgres docker image version
         dbDockerImage: "postgres:14.1-alpine",
         // Database name
-        // Can be overridden by the value defined in the environment variable DATABASE
+        // Can be overridden by the value defined in the environment variable PDS_DATABASE
         database: "personalData",
         // The host to access the db
-        // Can be overridden by the value defined in the environment variable DBHOST
+        // Can be overridden by the value defined in the environment variable PDS_DBHOST
         host: "localhost",
         // The port to access the db
-        // Can be overridden by the value defined in the environment variable DBPORT
+        // Can be overridden by the value defined in the environment variable PDS_DBPORT
         port: 5432,
         // The initial admin account created for accessing the db
-        // Can be overridden by the value defined in the environment variable DBUSER
+        // Can be overridden by the value defined in the environment variable PDS_DBUSER
         user: "admin",
         // The password for the initial admin account
-        // Can be overridden by the value defined in the environment variable DBPASSWORD
+        // Can be overridden by the value defined in the environment variable PDS_DBPASSWORD
         password: "asecretpassword"
     }
 }

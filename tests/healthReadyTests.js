@@ -19,7 +19,7 @@ jqUnit.module("Personal Data Server /health and /ready tests.");
 
 fluid.registerNamespace("fluid.tests.healthReady");
 
-const skipDocker = process.env.SKIPDOCKER === "true" ? true : false;
+const skipDocker = process.env.PDS_SKIPDOCKER === "true" ? true : false;
 const path = require("path");
 const config = require("../src/shared/utils.js").loadConfig(path.join(__dirname, "testConfig.json5"));
 const serverUrl = "http://localhost:" + config.server.port;

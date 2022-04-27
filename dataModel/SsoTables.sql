@@ -49,7 +49,7 @@ CREATE TABLE access_token (
     last_updated_timestamp TIMESTAMPTZ NULL
 );
 
--- Keep track of the mapping between the referer origin that the SSO request is from and the state value sent to
+-- Keep track of the mapping between the referer origin that the SSO request is from and the state token sent to
 -- SSO provider for this request
 CREATE TABLE referer_tracker (
     sso_state VARCHAR(64) NOT NULL PRIMARY KEY,

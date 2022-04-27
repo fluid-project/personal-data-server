@@ -66,7 +66,7 @@ class GoogleSso {
      * @param {String} options.authorizeUri - Google's authorization endpoint
      * @param {String} options.encodedRedirectUri - The endpoint that Google will call
      * @param {String} options.accessType - The type of access to Google needed for SSO
-     * @param {String} ssoState - The SSO state
+     * @param {String} ssoState - The state token
      *
      */
     async authorize(res, dbOps, options, ssoState) {
@@ -184,7 +184,7 @@ class GoogleSso {
      * Create and persist user, access token, and SSO account records based
      * on the given information.
      *
-     * @param {Object} userInfo - The user information responded by the SSO provider. It's used to create
+     * @param {userInfo} userInfo - The user information responded by the SSO provider. It's used to create
      * the sso user account record.
      * @param {Object} accessTokenInfo - The access token information object provided by the provider for
      *                               the user's access.

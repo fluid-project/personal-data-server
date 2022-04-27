@@ -13,7 +13,6 @@
 
 const express = require("express");
 const expressSession = require("express-session");
-const path = require("path");
 const logger = require("morgan");
 
 const indexRouter = require("./routes/index.js");
@@ -24,9 +23,7 @@ const sessionStore = require("./sessionStore.js");
 const app = express();
 app.use(logger("dev"));
 
-// Views
-app.set("views", path.join(__dirname, "views"));
-app.set("view engine", "jade");
+// Parse incoming requests with JSON payloads
 app.use(express.json());
 
 // Express session
