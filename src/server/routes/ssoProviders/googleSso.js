@@ -66,13 +66,13 @@ class GoogleSso {
      * @param {String} options.authorizeUri - Google's authorization endpoint
      * @param {String} options.encodedRedirectUri - The endpoint that Google will call
      * @param {String} options.accessType - The type of access to Google needed for SSO
-     * @param {String} ssoState - The state token
+     * @param {String} state - The state token
      *
      */
-    async authorize(res, dbOps, options, ssoState) {
+    async authorize(res, dbOps, options, state) {
         // Send the authorize request to the SSO provider
         const clientInfo = await dbOps.getSsoClientInfo(this.options.provider);
-        const authRequest = `${options.authorizeUri}?client_id=${clientInfo.client_id}&redirect_uri=${options.encodedRedirectUri}&scope=openid+profile+email&response_type=code&state=${ssoState}&access_type=${options.accessType}`;
+        const authRequest = `${options.authorizeUri}?client_id=${clientInfo.client_id}&redirect_uri=${options.encodedRedirectUri}&scope=openid+profile+email&response_type=code&state=${state}&access_type=${options.accessType}`;
         console.debug("Google /authorize request: ", authRequest);
         res.redirect(authRequest);
     };

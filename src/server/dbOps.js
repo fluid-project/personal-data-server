@@ -94,23 +94,23 @@ class DataBaseRequest extends postgresOps.postgresOps {
      * Save the mapping between the state token and the referer origin in the table for future look up
      * of the referer origin.
      *
-     * @param {String} ssoState - The state token.
+     * @param {String} state - The state token.
      * @param {String} refererOrigin - The referer origin. An example is: https://idrc.ocadu.ca
      * @param {String} refererUrl - The referer URL. An example is: https://idrc.ocadu.ca/about/
      * @return {Object|null} the newly created record.
      */
-    async trackSsoState(ssoState, refererOrigin, refererUrl) {
+    async trackstate(state, refererOrigin, refererUrl) {
         let newRecord;
         if (refererOrigin) {
             newRecord = await this.runSql(`
-                INSERT INTO referer_tracker ("sso_state", "referer_origin", "referer_url", "created_timestamp")
-                VALUES ('${ssoState}', '${refererOrigin}', '${refererUrl}', current_timestamp)
+                INSERT INTO referer_tracker ("state", "referer_origin", "referer_url", "created_timestamp")
+                VALUES ('${state}', '${refererOrigin}', '${refererUrl}', current_timestamp)
                 RETURNING *;
             `);
         } else {
             newRecord = await this.runSql(`
-                INSERT INTO referer_tracker ("sso_state","created_timestamp")
-                VALUES ('${ssoState}', current_timestamp)
+                INSERT INTO referer_tracker ("state","created_timestamp")
+                VALUES ('${state}', current_timestamp)
                 RETURNING *;
             `);
         }
@@ -121,7 +121,7 @@ class DataBaseRequest extends postgresOps.postgresOps {
     /**
      * User account record
      * @typedef {Object} refererTrackerRecord
-     * @property {Number} sso_state The anti-forgery state token.
+     * @property {Number} state The anti-forgery state token.
      * @property {String} referer_origin The referer origin.
      * @property {String} referer_url The referer URL.
      * @property {Date} created_timestamp The timestamp when the record is created.
@@ -130,14 +130,14 @@ class DataBaseRequest extends postgresOps.postgresOps {
     /**
      * Get the referer tracker record of the given state token.
      *
-     * @param {String} ssoState - The state token.
+     * @param {String} state - The state token.
      * @return {refererTrackerRecord} return the referer tracker record linked with the given state token.
      *         Return null if the record
      * is not found.
      */
-    async getRefererTracker(ssoState) {
+    async getRefererTracker(state) {
         const refererTrackerRecord = await this.runSql(`
-            SELECT * FROM referer_tracker WHERE sso_state = '${ssoState}';
+            SELECT * FROM referer_tracker WHERE state = '${state}';
         `);
 
         return refererTrackerRecord.rowCount > 0 ? refererTrackerRecord.rows[0] : null;
@@ -147,12 +147,12 @@ class DataBaseRequest extends postgresOps.postgresOps {
      * Save the mapping between the state token and the referer origin in the table for future look up
      * of the referer origin.
      *
-     * @param {String} ssoState - The state token.
+     * @param {String} state - The state token.
      * @return {Boolean} return true if the record is deleted. Otherwise, return false.
      */
-    async deleteRefererTracker(ssoState) {
+    async deleteRefererTracker(state) {
         const refererOriginRecord = await this.runSql(`
-            DELETE FROM referer_tracker WHERE sso_state = '${ssoState}' RETURNING *;
+            DELETE FROM referer_tracker WHERE state = '${state}' RETURNING *;
         `);
 
         return refererOriginRecord.rowCount > 0;
