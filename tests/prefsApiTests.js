@@ -77,7 +77,11 @@ jqUnit.test("Get preferences /get_prefs API tests", async function () {
     response = await dbOps.getLoginToken(1, "https://external.site.com");
 
     // 1.3 Use the login token to test /get_prefs API
-    response = await fluid.tests.utils.sendRequest(serverUrl, "/get_prefs?loginToken=" + response.login_token);
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/get_prefs", {
+        headers: {
+            "Authorization": "Bearer " + response.login_token
+        }
+    });
     fluid.tests.utils.testResponse(response, 200, {
         textSize: 1.2,
         lineSpace: 1.2
@@ -88,7 +92,11 @@ jqUnit.test("Get preferences /get_prefs API tests", async function () {
     fluid.tests.utils.testResponse(response, 403, {"isError": true, "message": "Please login first."}, "/get_prefs");
 
     // 3. Failed case: wrong loginToken is not provided
-    response = await fluid.tests.utils.sendRequest(serverUrl, "/get_prefs?loginToken=wrong");
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/get_prefs", {
+        headers: {
+            "Authorization": "Bearer wrong"
+        }
+    });
     fluid.tests.utils.testResponse(response, 403, {"isError": true, "message": "Invalid login token. Please login."}, "/get_prefs");
 
     if (!skipDocker) {
@@ -157,31 +165,32 @@ jqUnit.test("Save preferences /save_prefs API tests", async function () {
 
     // 1.3 Use the login token to test /save_prefs API
     response = await fluid.tests.utils.sendRequest(serverUrl, "/save_prefs", {
-        loginToken: loginToken,
-        preferences: prefsToSave
-    }, "post");
+        headers: {
+            "Authorization": "Bearer " + loginToken
+        }
+    }, "post", prefsToSave);
     fluid.tests.utils.testResponse(response, 200, "Saved successfully.", "/save_prefs (should succeed)");
     jqUnit.assertDeepEq("The new preferences object is saved in the database", prefsToSave, await dbOps.getPreferences(loginToken));
 
     // 2. Failed case: loginToken is not provided
-    response = await fluid.tests.utils.sendRequest(serverUrl, "/save_prefs", {
-        preferences: prefsToSave
-    }, "post");
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/save_prefs", null, "post", prefsToSave);
     fluid.tests.utils.testResponse(response, 403, {"isError": true, "message": "Please login first."}, "/save_prefs");
 
     // 3. Failed case: wrong loginToken is not provided
     response = await fluid.tests.utils.sendRequest(serverUrl, "/save_prefs", {
-        loginToken: "wrong",
-        preferences: prefsToSave
-    }, "post");
+        headers: {
+            "Authorization": "Bearer wrong"
+        }
+    }, "post", prefsToSave);
     fluid.tests.utils.testResponse(response, 403, {"isError": true, "message": "Invalid login token. Please login."}, "/save_prefs");
 
     // 4. Failed case: when the size of the preferences object exceeds the size limit
     const largeObject = fluid.tests.prefsApi.createLargeObject(2);
     response = await fluid.tests.utils.sendRequest(serverUrl, "/save_prefs", {
-        loginToken: loginToken,
-        preferences: largeObject
-    }, "post");
+        headers: {
+            "Authorization": "Bearer " + loginToken
+        }
+    }, "post", largeObject);
     fluid.tests.utils.testResponse(response, 403, {"isError": true, "message": "The size of preferences exceeds the limit."}, "/save_prefs");
 
     if (!skipDocker) {

@@ -24,12 +24,14 @@ const sizeLimitOfPrefsObject = 1024;   // The size limit of an preferences objec
  * 3. If it isn't, return error.
  */
 router.get("/get_prefs", async function (req, res) {
-    if (!req.query.loginToken) {
+    const loginToken = getLoginToken(req.headers.authorization);
+
+    if (!loginToken) {
         res.status(403).json({"isError": true, "message": "Please login first."});
         return;
     }
 
-    const preferences = await dbOps.getPreferences(req.query.loginToken);
+    const preferences = await dbOps.getPreferences(loginToken);
 
     if (!preferences) {
         res.status(403).json({"isError": true, "message": "Invalid login token. Please login."});
@@ -52,18 +54,20 @@ router.get("/get_prefs", async function (req, res) {
  * 4. Otherwise, save preferences.
  */
 router.post("/save_prefs", async function (req, res) {
-    if (!req.body.loginToken) {
+    const loginToken = getLoginToken(req.headers.authorization);
+
+    if (!loginToken) {
         res.status(403).json({"isError": true, "message": "Please login first."});
         return;
     }
 
-    if (!req.body.preferences) {
+    if (!req.body) {
         res.status(403).json({"isError": true, "message": "Preferences is undefined."});
         return;
     }
 
     // Verify if the login token is valid
-    const prevPrefs = await dbOps.getPreferences(req.body.loginToken);
+    const prevPrefs = await dbOps.getPreferences(loginToken);
 
     if (!prevPrefs) {
         res.status(403).json({"isError": true, "message": "Invalid login token. Please login."});
@@ -71,14 +75,14 @@ router.post("/save_prefs", async function (req, res) {
     }
 
     // Verify the size of the preferences object
-    const sizeOfPrefs = calcSizeOfObject(req.body.preferences);
+    const sizeOfPrefs = calcSizeOfObject(req.body);
 
     if (sizeOfPrefs > sizeLimitOfPrefsObject) {
         res.status(403).json({"isError": true, "message": "The size of preferences exceeds the limit."});
         return;
     }
 
-    const isSuccess = await dbOps.savePrefsByLoginToken(req.body.loginToken, req.body.preferences);
+    const isSuccess = await dbOps.savePrefsByLoginToken(loginToken, req.body);
 
     if (isSuccess) {
         res.send("Saved successfully.");
@@ -87,6 +91,18 @@ router.post("/save_prefs", async function (req, res) {
         return;
     }
 });
+
+/**
+ * Parse the login token.
+ *
+ * @param {String} authHeader - The "Authorization" value in the request header.
+ * @return {String} The login token.
+ */
+const getLoginToken = function (authHeader) {
+    authHeader = authHeader || "";
+    const matches = authHeader.match(/Bearer (.*)/);
+    return matches && matches.length === 2 ? matches[1] : null;
+};
 
 /**
  * Calculate the size of an object

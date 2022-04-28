@@ -6,6 +6,7 @@ that it is made from.
 
 ## Documentation Overview
 
+* [API](API.md)
 * [Postgres Operations and API](PostgresOperations.md)
 * [The Workflow between UIO and Personal Data Server - In Discussion](Workflow.md)
 * [Data Model](DataModel.md)

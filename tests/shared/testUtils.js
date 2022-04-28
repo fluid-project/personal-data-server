@@ -39,14 +39,20 @@ fluid.tests.utils.setDbEnvVars = function (dbConfig) {
  * @param {String} endpoint - The end point supported by the server.
  * @param {String} options - Optional. Axios options when sending requests.
  * @param {String} method - Optional. Request method. The default is "GET".
+ * @param {String|Object} data - Optional. The data to be sent as the request body.
+ * Only applicable for request methods 'PUT', 'POST', 'DELETE , and 'PATCH'.
  * @return {Object} The response object containing the response code and message.
  */
-fluid.tests.utils.sendRequest = async function (serverDomain, endpoint, options, method) {
+fluid.tests.utils.sendRequest = async function (serverDomain, endpoint, options, method, data) {
     console.debug("- Sending '%s' request", endpoint);
     options = options || {};
     method = method || "get";
     try {
-        return await axios[method](serverDomain + endpoint, options);
+        if (["post", "put", "patch"].includes(method)) {
+            return await axios[method](serverDomain + endpoint, data, options);
+        } else {
+            return await axios[method](serverDomain + endpoint, options);
+        }
     } catch (e) {
         // Return e.response when the server responds with an error.
         // Return e when the server endpoint doesn't exist.
