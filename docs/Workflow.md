@@ -93,13 +93,13 @@ Read [this document](./images/SSOWorkflow.md) regarding how to edit this diagram
    2. The Personal Data Server saves the mapping between the `loginToken` and the external
       website URL into the database for future verifications.
    3. The Personal Data Server redirects to the external website URL, passing back the
-      `loginToken` as a cookie in the response header.
+      `loginToken` as a cookie value in the response header. The cookie name is `PDS_loginToken`
 4. Making Authorized Requests to the Personal Data Server
    1. UIO make a local request to the Personal Data Server handled by the Edge Proxy,
-      passing the `loginToken` in the `Authorization` header.
+      passing the `PDS_loginToken` value as a request parameter.
    2. The Edge Proxy redirects this request to a Personal Data Server
       end point.
-   3. The Personal Data Server validates the `loginToken` authorization.
+   3. The Personal Data Server validates the login token.
    4. The Personal Data Server responds to the Edge Proxy.
    5. The Edge Proxy responds to UIO.
 
