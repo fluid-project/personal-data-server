@@ -41,6 +41,17 @@ with the backend database is ready.
 }
 ```
 
+## Google Sign In (GET /sso/google)
+
+* **description**: Use a Google account to sign into Personal Data Server. This API uses
+[Google OAuth2 authorization process](https://developers.google.com/identity/protocols/oauth2/web-server).
+* **route:** `/sso/google`
+* **method:** `GET`
+* **return:** Take the user through the Google sign in process where users sign in with their own Google accounts.
+If the sign-in request is issued from an external website, when the sign in completes, the response redirects the
+user back to the external website with a login token in the cookie. This login token can then be used to access this
+user's preferences.
+
 ## Get preferences (GET /get_prefs)
 
 * **description**: Retrieve user preferences based on a login token. If the login token is valid, Personal Data Server
