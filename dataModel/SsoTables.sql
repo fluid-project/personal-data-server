@@ -48,3 +48,23 @@ CREATE TABLE access_token (
     created_timestamp TIMESTAMPTZ NOT NULL,
     last_updated_timestamp TIMESTAMPTZ NULL
 );
+
+-- Keep track of the mapping between the referer origin that the SSO request is from and the state token sent to
+-- SSO provider for this request
+CREATE TABLE referer_tracker (
+    state VARCHAR(64) NOT NULL PRIMARY KEY,
+    referer_origin TEXT DEFAULT NULL,
+    referer_url TEXT DEFAULT NULL,
+    created_timestamp TIMESTAMPTZ NOT NULL
+);
+
+-- Login tokens generated for SSO accounts
+CREATE TABLE login_token (
+    sso_user_account_id INTEGER NOT NULL REFERENCES sso_user_account (sso_user_account_id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    referer_origin TEXT NOT NULL,
+    login_token VARCHAR(128) NOT NULL,
+    expires_at TIMESTAMPTZ NULL,
+    created_timestamp TIMESTAMPTZ NOT NULL,
+    last_updated_timestamp TIMESTAMPTZ NULL,
+    PRIMARY KEY (sso_user_account_id, referer_origin)
+);

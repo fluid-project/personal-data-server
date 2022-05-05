@@ -23,11 +23,12 @@ require("./src/shared/driverUtils.js");
 const sqlFiles = {
     clearDB: __dirname + "/dataModel/ClearDB.sql",
     createTables: __dirname + "/dataModel/SsoTables.sql",
+    createSessionTable: __dirname + "/node_modules/connect-pg-simple/table.sql",
     loadData: __dirname + "/dataModel/SsoProvidersData.sql"
 };
 
-const skipDocker = process.env.SKIPDOCKER === "true" ? true : false;
-const clearDB = process.env.CLEARDB === "true" ? true : false;
+const skipDocker = process.env.PDS_SKIPDOCKER === "true" ? true : false;
+const clearDB = process.env.PDS_CLEARDB === "true" ? true : false;
 const serverPort = config.server.port || 3000;
 
 async function main() {
@@ -41,7 +42,7 @@ async function main() {
 
     const postgresHandler = new postgresOps.postgresOps(config.db);
 
-    // Clear the old data if CLEARDB flag is set to true
+    // Clear the old data if PDS_CLEARDB flag is set to true
     if (clearDB) {
         await fluid.personalData.clearDB(postgresHandler, sqlFiles.clearDB);
     }

@@ -18,26 +18,26 @@
         "node": ">=10.15.0"
     },
     "dependencies": {
-        "axios": "0.24.0",
-        "express": "4.17.1",
-        "express-session": "1.17.2",
-        "jade": "1.11.0",
-        "json5": "2.2.0",
-        "minimist": "^1.2.5",
+        "axios": "^0.26.1",
+        "connect-pg-simple": "^7.0.0",
+        "express": "^4.17.3",
+        "express-session": "^1.17.2",
+        "json5": "^2.2.1",
+        "minimist": "^1.2.6",
         "morgan": "1.10.0",
-        "pg": "8.7.1",
         "pg-format": "1.0.4",
         "uuid": "8.3.2"
     },
     "devDependencies": {
-        "eslint-config-fluid": "2.0.0",
-        "eslint-plugin-jsdoc": "37.0.3",
-        "fluid-lint-all": "1.1.5",
-        "infusion": "3.0.0",
-        "nock": "13.1.4",
+        "eslint-config-fluid": "^2.0.1",
+        "eslint-plugin-jsdoc": "^39.2.1",
+        "fluid-lint-all": "^1.2.2",
+        "infusion": "^4.0.0",
+        "nock": "^13.2.4",
         "node-jqunit": "1.1.9",
-        "nodemon": "2.0.14",
-        "nyc": "15.1.0"
+        "nodemon": "^2.0.15",
+        "nyc": "15.1.0",
+        "pg": "^8.7.3"
     },
     "scripts": {
         "test": "node node_modules/nyc/bin/nyc.js node tests/all-tests.js",

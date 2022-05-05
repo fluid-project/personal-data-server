@@ -10,14 +10,12 @@
 
 require("json5/lib/register");
 const fluid = require("infusion");
-const axios = require("axios");
 const nock = require("nock");
 const url = require("url");
 const jqUnit = require("node-jqunit");
 
 require("../src/shared/driverUtils.js");
-require("./shared/utilsCommon.js");
-require("./shared/utilsSso.js");
+require("./shared/testUtils.js");
 
 const path = require("path");
 const config = require("../src/shared/utils.js").loadConfig(path.join(__dirname, "testConfig.json5"));
@@ -25,14 +23,14 @@ const serverUrl = "http://localhost:" + config.server.port;
 fluid.tests.utils.setDbEnvVars(config.db);
 
 const googleSso = require("../src/server/routes/ssoProviders/googleSso.js");
-const ssoDbOps = require("../src/server/ssoDbOps.js");
+const dbOps = require("../src/server/dbOps.js");
 const server = require("../server.js");
 
 jqUnit.module("Personal Data Server Google SSO Tests");
 
 fluid.registerNamespace("fluid.tests.googleSso");
 
-const skipDocker = process.env.SKIPDOCKER === "true" ? true : false;
+const skipDocker = process.env.PDS_SKIPDOCKER === "true" ? true : false;
 
 // The mock code returned via the redirect URI
 const mockAuthCode = "mock-auth-code";
@@ -48,6 +46,9 @@ const mockAccessTokenInfoUpdated = {
     expires_in: 3600,
     refresh_token: "updatedRandomString"
 };
+
+// Mock referer URL of an external website
+const mockReferer = "https://external.site.com/about/";
 
 // Possible errors are "invalid_request", "invalid_client", "invalid_grant".
 // "unauthorized_client", "unsupported_grant_type", or "invalid_scope".
@@ -85,8 +86,8 @@ const mockUserInfoUpdated = {
 // Keep track of the payload returned by the auth request for consequent tests
 let authPayload;
 
-jqUnit.test("Google SSO tests", async function () {
-    jqUnit.expect(skipDocker ? 65 : 67);
+jqUnit.test("Google SSO unit tests", async function () {
+    jqUnit.expect(skipDocker ? 55 : 57);
     let serverStatus, response;
 
     if (!skipDocker) {
@@ -100,11 +101,11 @@ jqUnit.test("Google SSO tests", async function () {
     jqUnit.assertTrue("The database " + config.db.database + " has been created successfully", response.isCreated);
 
     // Clear the database for a fresh start
-    response = await fluid.personalData.clearDB(ssoDbOps, fluid.tests.sqlFiles.clearDB);
+    response = await fluid.personalData.clearDB(dbOps, fluid.tests.sqlFiles.clearDB);
     jqUnit.assertTrue("The database " + config.db.database + " has been cleared successfully", response.isCleared);
 
     // Initialize db: create tables and load data
-    response = await fluid.personalData.initDB(ssoDbOps, fluid.tests.sqlFiles);
+    response = await fluid.personalData.initDB(dbOps, fluid.tests.sqlFiles);
     jqUnit.assertTrue("The database " + config.db.database + " has been initialized successfully", response.isInited);
 
     // Start the server
@@ -120,33 +121,13 @@ jqUnit.test("Google SSO tests", async function () {
     response = await fluid.tests.utils.sendRequest(serverUrl, "/ready");
     fluid.tests.googleSso.testResponse(response, 200, { isReady: true }, "/ready (should succeed)");
 
-    // Test "/sso/google"
-    response = await fluid.tests.googleSso.sendAuthRequest(serverUrl, "/sso/google");
-    fluid.tests.googleSso.testResponse(response, 200, {}, "/sso/google");
-
-    // Test the successful workflow of "/sso/google/login/callback"
-    fluid.tests.setupMockResponsesForCallback(googleSso.options);
-    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + mockAuthCode);
-    jqUnit.assertNotNull("accessToken is returned", response.data.accessToken);
-
-    // Test the failed workflow of "/sso/google/login/callback" - mismatched anti-forgery parameter
-    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?state=wrongState");
-    fluid.tests.googleSso.testResponse(response, 403, {
-        isError: true,
-        message: "Mismatched anti-forgery parameter"
-    }, "/sso/google/login/callback?state=wrongState");
-
-    // Delete the test user -- this will cascade and delete the associated sso_user_account and access_token.
-    response = await fluid.tests.cleanUpDb(ssoDbOps);
-    jqUnit.assertEquals("Tables are truncated", "TRUNCATE", response.command);
-
     // Unit tests of individual functions
     // Test successful GoogleSso.fetchAccessToken() with mock /token endpoint
-    response = await fluid.tests.googleSso.fetchAccessToken(googleSso, authPayload.code, ssoDbOps, googleSso.options, 200);
+    response = await fluid.tests.googleSso.fetchAccessToken(googleSso, mockAuthCode, dbOps, googleSso.options, 200);
     fluid.tests.googleSso.testResponse(response, 200, mockAccessTokenInfo, "googleSso.fetchAccessToken(/token)");
 
     // Test failure of GoogleSso.fetchAccessToken()
-    response = await fluid.tests.googleSso.fetchAccessToken(googleSso, authPayload.code, ssoDbOps, googleSso.options, 400);
+    response = await fluid.tests.googleSso.fetchAccessToken(googleSso, mockAuthCode, dbOps, googleSso.options, 400);
     fluid.tests.googleSso.testResponse(response, 400, mockErrorResponse, "googleSso.fetchAccessToken(/token)");
 
     // Test successful GoogleSso.fetchUserInfo() with mock /userInfo endpoint
@@ -158,16 +139,147 @@ jqUnit.test("Google SSO tests", async function () {
     fluid.tests.googleSso.testResponse(response, 400, mockErrorResponse, "googleSso.fetchUserInfo(/userInfo)");
 
     // Test googleSso.storeUserAndAccessToken()
-    response = await fluid.tests.googleSso.storeUserAndAccessToken(googleSso, ssoDbOps, mockUserInfo, mockAccessTokenInfo);
-    await fluid.tests.googleSso.testStoreUserAndAccessToken(response, ssoDbOps, "googleSso.storeUserAndAccessToken()", googleSso.options, mockUserInfo, mockAccessTokenInfo);
+    response = await fluid.tests.googleSso.storeUserAndAccessToken(googleSso, dbOps, mockUserInfo, mockAccessTokenInfo);
+    await fluid.tests.googleSso.testStoreUserAndAccessToken(response, dbOps, "googleSso.storeUserAndAccessToken()", googleSso.options, mockUserInfo, mockAccessTokenInfo);
 
     // Recall googleSso.storeUserAndAccessToken() will update the old information
-    response = await fluid.tests.googleSso.storeUserAndAccessToken(googleSso, ssoDbOps, mockUserInfoUpdated, mockAccessTokenInfoUpdated);
-    await fluid.tests.googleSso.testStoreUserAndAccessToken(response, ssoDbOps, "googleSso.storeUserAndAccessToken()", googleSso.options, mockUserInfoUpdated, mockAccessTokenInfoUpdated, true);
+    response = await fluid.tests.googleSso.storeUserAndAccessToken(googleSso, dbOps, mockUserInfoUpdated, mockAccessTokenInfoUpdated);
+    await fluid.tests.googleSso.testStoreUserAndAccessToken(response, dbOps, "googleSso.storeUserAndAccessToken()", googleSso.options, mockUserInfoUpdated, mockAccessTokenInfoUpdated, true);
 
-    // Test failure of "/sso/google/login/callback" -- missing authorization code parameter
-    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback");
-    fluid.tests.googleSso.testResponse(response, 403, {"isError": true, "message": "Request missing authorization code"}, "/sso/google/login/callback");
+    if (!skipDocker) {
+        // Stop the docker container for the database
+        response = await fluid.personalData.dockerStopDatabase(config.db.dbContainerName);
+        jqUnit.assertTrue("The database docker container has been stopped", response.dbStopped);
+    }
+
+    // Stop the server
+    await server.stopServer(serverInstance.server);
+    serverStatus = await fluid.personalData.getServerStatus(config.server.port);
+    jqUnit.assertFalse("The server has been stopped", serverStatus);
+});
+
+jqUnit.test("Google SSO integration tests", async function () {
+    jqUnit.expect(skipDocker ? 34 : 36);
+    let serverStatus, response;
+
+    if (!skipDocker) {
+        // Start the database
+        response = await fluid.personalData.dockerStartDatabase(config.db.dbContainerName, config.db.dbDockerImage, config.db);
+        jqUnit.assertTrue("The database docker container has been started successfully", response.dbReady);
+    }
+
+    // Create db
+    response = await fluid.personalData.createDB(config.db);
+    jqUnit.assertTrue("The database " + config.db.database + " has been created successfully", response.isCreated);
+
+    // Clear the database for a fresh start
+    response = await fluid.personalData.clearDB(dbOps, fluid.tests.sqlFiles.clearDB);
+    jqUnit.assertTrue("The database " + config.db.database + " has been cleared successfully", response.isCleared);
+
+    // Initialize db: create tables and load data
+    response = await fluid.personalData.initDB(dbOps, fluid.tests.sqlFiles);
+    jqUnit.assertTrue("The database " + config.db.database + " has been initialized successfully", response.isInited);
+
+    // Start the server
+    const serverInstance = await server.startServer(config.server.port);
+    // In case the server failed to start
+    serverInstance.status.catch((error) => {
+        throw new Error("Failed at starting server:" + error);
+    });
+    serverStatus = await fluid.personalData.getServerStatus(config.server.port);
+    jqUnit.assertTrue("The server is up and running", serverStatus);
+
+    // Test "/ready" to ensure the server is up and running
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/ready");
+    fluid.tests.googleSso.testResponse(response, 200, { isReady: true }, "/ready (should succeed)");
+
+    // Setup mock responses from google, the OAuth provider
+    fluid.tests.setupMockResponses(googleSso.options, 3);
+
+    // Test the successful workflows of "/sso/google" & "/sso/google/login/callback"
+    // Success case 1: referer is not in the "/sso/google" request header
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google");
+    fluid.tests.googleSso.testResponse(response, 200, "", "/sso/google");
+    fluid.tests.googleSso.testNumOfRecords(
+        "When the referer is not in the request header, referer_tracker table is not upated",
+        dbOps, "referer_tracker", 0
+    );
+
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + mockAuthCode + "&state=" + authPayload.state);
+    fluid.tests.googleSso.testResponse(response, 200, {accessToken: "\"PatAccessToken.someRandomeString\""}, "/sso/google/login/callback");
+    fluid.tests.googleSso.testNumOfRecords(
+        "When the referer is not in the request header, access token is generated",
+        dbOps, "access_token", 1
+    );
+    fluid.tests.googleSso.testNumOfRecords(
+        "When the referer is not in the request header, login token is not generated",
+        dbOps, "login_token", 0
+    );
+
+    // Success case 2: referer is Personal Data Server self domain
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google", {
+        "headers": {
+            "referer": config.server.selfDomain
+        }
+    });
+    fluid.tests.googleSso.testResponse(response, 200, "", "/sso/google");
+    fluid.tests.googleSso.testNumOfRecords(
+        "When the referer is Personal Data Server self domain, referer_tracker table is not upated",
+        dbOps, "referer_tracker", 0
+    );
+
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + mockAuthCode + "&state=" + authPayload.state);
+    fluid.tests.googleSso.testResponse(response, 200, {accessToken: "\"PatAccessToken.someRandomeString\""}, "/sso/google/login/callback");
+    fluid.tests.googleSso.testNumOfRecords(
+        "When the referer is Personal Data Server self domain, access token is generated",
+        dbOps, "access_token", 1
+    );
+    fluid.tests.googleSso.testNumOfRecords(
+        "When the referer is Personal Data Server self domain, login token is not generated",
+        dbOps, "login_token", 0
+    );
+
+    // Success case 3: referer is from an external url that is not Personal Data Server self domain.
+    // The response should redirect to the external url.
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google", {
+        "headers": {
+            "referer": mockReferer
+        }
+    });
+    fluid.tests.googleSso.testResponse(response, 200, "", "/sso/google");
+    fluid.tests.googleSso.testNumOfRecords(
+        "When the referer is an external URL, referer_tracker table is upated",
+        dbOps, "referer_tracker", 1
+    );
+
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + mockAuthCode + "&state=" + authPayload.state);
+    jqUnit.assertEquals("The response redirects to the mock referer", "external.site.com", response.hostname);
+    fluid.tests.googleSso.testNumOfRecords(
+        "When the referer is an external URL, referer_tracker record is removed after the verification",
+        dbOps, "referer_tracker", 0
+    );
+    fluid.tests.googleSso.testNumOfRecords(
+        "When the referer is an external URL, access token is generated",
+        dbOps, "access_token", 1
+    );
+    fluid.tests.googleSso.testNumOfRecords(
+        "When the referer is an external URL, login token is generated",
+        dbOps, "login_token", 1
+    );
+
+    // Test failure of "/sso/google/login/callback" - wrong anti-forgery parameter
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + mockAuthCode + "&state=wrongState");
+    fluid.tests.googleSso.testResponse(response, 403, {
+        isError: true,
+        message: "Mismatched anti-forgery parameter"
+    }, "/sso/google/login/callback?code=" + mockAuthCode + "&state=wrongState");
+
+    // Test failure of "/sso/google/login/callback" - Request missing authorization code
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?state=one-state-value");
+    fluid.tests.googleSso.testResponse(response, 403, {
+        isError: true,
+        message: "Request missing authorization code"
+    }, "/sso/google/login/callback?state=" + authPayload.state);
 
     // Test failure of "/sso/google/login/callback" -- when an error message is returned by Google
     response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?error=access_denied");
@@ -175,7 +287,7 @@ jqUnit.test("Google SSO tests", async function () {
 
     if (!skipDocker) {
         // Stop the docker container for the database
-        response = await fluid.personalData.dockerStopDatabase(config.db.dbContainerName, ssoDbOps);
+        response = await fluid.personalData.dockerStopDatabase(config.db.dbContainerName, dbOps);
         jqUnit.assertTrue("The database docker container has been stopped", response.dbStopped);
     }
 
@@ -190,26 +302,19 @@ fluid.tests.googleSso.testResponse = function (response, expectedStatus, expecte
     jqUnit.assertDeepEq("Check '" + endPoint + "' result", expected, response.data);
 };
 
-fluid.tests.googleSso.sendAuthRequest = async function (serverUrl, endpoint) {
+fluid.tests.setupMockResponses = function (options, repeatTimes) {
+    nock.cleanAll();
+
     // Mock Google's OAuth2 endpoint.  The request payload is stored in `authPayload` for subsequent tests.
     nock("https://accounts.google.com")
         .get("/o/oauth2/auth")
+        .times(repeatTimes)
         .query(function (payload) {
             authPayload = payload;
             return true;
         })
-        .reply(200, {});
+        .reply(200);
 
-    // Send the auth request which uses the mock response.
-    console.debug("- Sending '%s'", endpoint);
-    try {
-        return await axios.get(serverUrl + endpoint);
-    } catch (e) {
-        return e.response;
-    }
-};
-
-fluid.tests.setupMockResponsesForCallback = function (options) {
     // Mock Google's get access token endpoint.
     const accessTokenURL = new url.URL(options.accessTokenUri);
     nock(accessTokenURL.origin)
@@ -220,19 +325,23 @@ fluid.tests.setupMockResponsesForCallback = function (options) {
             client_id: "554291169960-repqllu9q9h5loog0hpadr6854fb2oq0.apps.dummy.com",
             client_secret: "ek1k4RNTao8XY6gAmmOXxJ6m"
         })
+        .times(repeatTimes)
         .reply(200, mockAccessTokenInfo);
-
 
     // Mock Google's get user info endpoint.
     const userInfoURL = new url.URL(options.userInfoUri);
     nock(userInfoURL.origin)
         .get(userInfoURL.pathname)
+        .times(repeatTimes)
         .query(true)
         .reply(200, mockUserInfo);
 };
 
-fluid.tests.googleSso.fetchAccessToken = function (googleSso, code, ssoDbOps, options, responseCode) {
+fluid.tests.googleSso.fetchAccessToken = function (googleSso, code, dbOps, options, responseCode) {
     let mockResponse;
+
+    nock.cleanAll();
+
     switch (responseCode) {
     case 200:
         mockResponse = {
@@ -252,11 +361,14 @@ fluid.tests.googleSso.fetchAccessToken = function (googleSso, code, ssoDbOps, op
         .reply(mockResponse.status, mockResponse.body);
 
     console.debug("- Calling googleSso.fetchAccessToken(/token)");
-    return googleSso.fetchAccessToken(code, ssoDbOps, options.accessTokenUri, options.redirectUri, options.provider);
+    return googleSso.fetchAccessToken(code, dbOps, options.accessTokenUri, options.redirectUri, options.provider);
 };
 
 fluid.tests.googleSso.fetchUserInfo = function (googleSso, accessToken, options, responseCode) {
     let mockResponse;
+
+    nock.cleanAll();
+
     switch (responseCode) {
     case 200:
         mockResponse = {
@@ -280,16 +392,21 @@ fluid.tests.googleSso.fetchUserInfo = function (googleSso, accessToken, options,
     return googleSso.fetchUserInfo(accessToken, options.userInfoUri, options.provider);
 };
 
-fluid.tests.googleSso.storeUserAndAccessToken = async function (googleSso, ssoDbOps, userInfo, accessTokenInfo) {
+fluid.tests.googleSso.testNumOfRecords = async function (msg, dbOps, tableName, expectedNumOfRecords) {
+    const results = await dbOps.runSql("SELECT * FROM " + tableName);
+    jqUnit.assertEquals(msg, expectedNumOfRecords, results.rowCount);
+};
+
+fluid.tests.googleSso.storeUserAndAccessToken = async function (googleSso, dbOps, userInfo, accessTokenInfo) {
     try {
         console.debug("- Calling googleSso.storeUserAndAccessToken()");
-        return await googleSso.storeUserAndAccessToken(userInfo, accessTokenInfo, ssoDbOps, googleSso.options.provider, googleSso.options.defaultPreferences);
+        return await googleSso.storeUserAndAccessToken(userInfo, accessTokenInfo, dbOps, googleSso.options.provider, googleSso.options.defaultPreferences);
     } catch (error) {
         console.debug(error.message);
     }
 };
 
-fluid.tests.googleSso.testStoreUserAndAccessToken = async function (response, ssoDbOps, testPoint, ssoOptions, expectedUserInfo, expectedAccessTokenInfo, isUpdate) {
+fluid.tests.googleSso.testStoreUserAndAccessToken = async function (response, dbOps, testPoint, ssoOptions, expectedUserInfo, expectedAccessTokenInfo, isUpdate) {
     let checkPrefix = `Check '${testPoint}': `;
 
     // Test function returned response
@@ -306,7 +423,7 @@ fluid.tests.googleSso.testStoreUserAndAccessToken = async function (response, ss
     checkPrefix = `Check '${testPoint}' in DB: `;
 
     // Check sso_user_account record in the database
-    const ssoUserAccountRecord = await ssoDbOps.runSql(`SELECT * FROM sso_user_account WHERE user_id_from_provider='${expectedUserInfo.id}' AND provider_id=(SELECT provider_id from sso_provider WHERE provider = '${ssoOptions.provider}');`);
+    const ssoUserAccountRecord = await dbOps.runSql(`SELECT * FROM sso_user_account WHERE user_id_from_provider='${expectedUserInfo.id}' AND provider_id=(SELECT provider_id from sso_provider WHERE provider = '${ssoOptions.provider}');`);
     jqUnit.assertNotNull(`${checkPrefix} sso_user_account.provider_id`, ssoUserAccountRecord.rows[0].provider_id);
     jqUnit.assertNotNull(`${checkPrefix} sso_user_account.user_account_id`, ssoUserAccountRecord.rows[0].user_account_id);
     jqUnit.assertDeepEq(`${checkPrefix} sso_user_account.user_info`, expectedUserInfo, ssoUserAccountRecord.rows[0].user_info);
@@ -314,13 +431,13 @@ fluid.tests.googleSso.testStoreUserAndAccessToken = async function (response, ss
     jqUnit[isUpdate ? "assertNotNull" : "assertNull"](`${checkPrefix} sso_user_account.last_updated_timestamp`, ssoUserAccountRecord.rows[0].last_updated_timestamp);
 
     // Check user_account record in the database
-    const userRecord = await ssoDbOps.runSql(`SELECT * FROM user_account WHERE user_account_id='${ssoUserAccountRecord.rows[0].user_account_id}';`);
+    const userRecord = await dbOps.runSql(`SELECT * FROM user_account WHERE user_account_id='${ssoUserAccountRecord.rows[0].user_account_id}';`);
     jqUnit.assertDeepEq(`${checkPrefix} user_account.preferences`, ssoOptions.defaultPreferences, userRecord.rows[0].preferences);
     jqUnit.assertNotNull(`${checkPrefix} user_account.created_timestamp`, userRecord.rows[0].created_timestamp);
     jqUnit.assertNull(`${checkPrefix} user_account.last_updated_timestamp`, userRecord.rows[0].last_updated_timestamp);
 
     // Check access_token record in the database
-    const accessTokenRecord = await ssoDbOps.runSql(`SELECT * FROM access_token WHERE sso_user_account_id='${response.sso_user_account_id}';`);
+    const accessTokenRecord = await dbOps.runSql(`SELECT * FROM access_token WHERE sso_user_account_id='${response.sso_user_account_id}';`);
     jqUnit.assertDeepEq(`${checkPrefix} access_token.access_token`, expectedAccessTokenInfo.access_token, accessTokenRecord.rows[0].access_token);
     jqUnit.assertEquals(`${checkPrefix} access_token.refresh_token`, expectedAccessTokenInfo.refresh_token, accessTokenRecord.rows[0].refresh_token);
     jqUnit.assertNotNull(`${checkPrefix} access_token.expires_at`, response.expires_at);
@@ -328,8 +445,8 @@ fluid.tests.googleSso.testStoreUserAndAccessToken = async function (response, ss
     jqUnit[isUpdate ? "assertNotNull" : "assertNull"](`${checkPrefix} access_token.last_updated_timestamp`, accessTokenRecord.rows[0].last_updated_timestamp);
 };
 
-fluid.tests.cleanUpDb = async function (ssoDbOps) {
+fluid.tests.cleanUpDb = async function (dbOps) {
     console.debug("- Truncate tables: user_account, sso_user_account, access_token");
-    const deleteResult = await ssoDbOps.runSql("TRUNCATE TABLE user_account CASCADE;");
+    const deleteResult = await dbOps.runSql("TRUNCATE TABLE user_account CASCADE;");
     return deleteResult;
 };

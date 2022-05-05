@@ -19,7 +19,7 @@ const crypto = require("crypto");
  * This code was based off https://blog.abelotech.com/posts/generate-random-values-nodejs-javascript/#random-values-in-base64-format
  * Moreover, according to [this thread](https://github.com/keepassxreboot/keepassxc/issues/3255),
  * The random token generated would occasionally include a string of trailing equal signs and Google's
- * OAuth2 server would complain. The suggestion is to remove trailing equal signs.
+ * OAuth2 server would complain. The suggestion is to remove or replace trailing equal signs.
  *
  * @param {Integer} length - The length of the state string.
  * @return {String} a random set of characters.
@@ -29,15 +29,15 @@ const generateRandomToken = function (length) {
         .toString("base64")
         .replace(/\+/g, "-")        // make it url safe: plus becomes minus,
         .replace(/\//g, "_")        // slash becomes underscore,
-        .replace(/=*$/, "")         // and trailing equals are removed
-        .substring(0, length - 1);  // ensure `length`
+        .replace(/=*$/, "_")         // and trailing equals are removed
+        .substring(0, length);  // ensure `length`
 };
 
 /**
  * Convert a expires_in value in seconds to a postgres compatible timestamp.
  *
  * @param {Integer} seconds - The remaining lifetime in seconds.
- * @return {String} a timestamp in a format of "2022-03-14 19:54:25.618119+00".
+ * @return {Date} a timestamp in a format of "2022-03-14 19:54:25.618119+00".
  */
 const calculateExpiredInTimestamp = function (seconds) {
     return new Date(Date.now() + (seconds * 1000));
@@ -55,16 +55,18 @@ const loadConfig = function (configFile) {
 
     return {
         server: {
-            port: process.env.SERVERPORT || config.server.port
+            port: process.env.PDS_SERVERPORT || config.server.port,
+            loginTokenExpiresIn: process.env.PDS_LOGINTOKENEXPIRESIN || config.server.loginTokenExpiresIn,
+            selfDomain: config.server.selfDomain
         },
         db: {
             dbContainerName: config.db.dbContainerName,
             dbDockerImage: config.db.dbDockerImage,
-            database: process.env.DATABASE || config.db.database,
-            port: process.env.DBPORT || config.db.port,
-            host: process.env.DBHOST || config.db.host,
-            user: process.env.DBUSER || config.db.user,
-            password: process.env.DBPASSWORD || config.db.password
+            database: process.env.PDS_DATABASE || config.db.database,
+            port: process.env.PDS_DBPORT || config.db.port,
+            host: process.env.PDS_DBHOST || config.db.host,
+            user: process.env.PDS_DBUSER || config.db.user,
+            password: process.env.PDS_DBPASSWORD || config.db.password
         }
     };
 };

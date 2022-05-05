@@ -1,4 +1,4 @@
-# Preferences Edge Proxy Workflow
+# Personal Data Server Workflow
 
 A workflow supported by the Personal Data Server, where the user makes save/retrieve
 requests for their preferences while on a static site. An example is where a user
@@ -19,7 +19,9 @@ of the SSO process.
 
 ## OpenID Connect Workflow
 
-![Preferences OpenID Connect Flow](./images/StaticAuthWorkflow.png)
+![Workflow to Connect External UIO Websites with Preferences Server](./images/SSOWorkflow.png)
+
+Read [this document](./images/SSOWorkflow.md) regarding how to edit this diagram.
 
 ## Actors/Resources
 
@@ -33,7 +35,7 @@ of the SSO process.
 * **SSO Client**: A client of an SSO provider, where the client uses the
   provider as a way of authenticating users.  The Personal Data Server is a client
   in this context.
-* **SSO Provider**: An OAuth2 server that is used to authenticate users.  Google is
+* **SSO Provider**: An OAuth2 server that is used to authenticate users. Google is
   an SSO provider.
 * **Personal Data Server**: An instance of the Personal Data Storage service. Stores
   preferences and authenticates with a single sign on (SSO) provider, e.g. Google.
@@ -44,12 +46,11 @@ of the SSO process.
 
 1. Open login
     1. Trigger login to Personal Data Server from UIO
-    2. UIO makes a local request handled by the Edge Proxy. This is to prevent
-       cross origin requests. e.g. `/login/google`
-    3. The Edge Proxy redirects this request to the proper endpoint on the
-       Personal Data Server.
+    2. UIO makes a request to the Preferences Server login API. e.g. `/sso/google`
 2. The Personal Data Server sends an [authentication request](https://developers.google.com/identity/protocols/oauth2/openid-connect#sendauthrequest)
-   to Google.
+   to Google. Meanwhile, the Personal Data Server keeps track of the referer URL
+   that the login request is from. This referer URL is the external website URL
+   on which UIO is implemented.
    1. the authentication request includes the following as query parameters:
       * `client_id` identifying the Personal Data Server to Google
       * `response_type` which is usually `code`
@@ -57,13 +58,13 @@ of the SSO process.
       * `redirect_uri` which is the endpoint on the Personal Data Server that
            will receive the response from Google. It must match the authorized
            redirect URI that was pre-registered with Google.
-      * `state`, the anti-forgery unique session token
+      * `state`, the anti-forgery unique state token
    2. Login and consent:  The Resource Owner may be presented with a login
       screen by Google in their domain, and asked to consent the requested
       scope.
       * If the user is already logged into Google, they will be presented
         with the consent dialog.
-   3. The Resource Owner authenticates with Google and grants consent
+   3. The Resource Owner authenticates with Google and grants consent.
       * If the user has previously provided consent, Google will present no
         dialog, but will retrieve the scope(s) of information for which the user
         has consented.
@@ -84,22 +85,23 @@ of the SSO process.
          will receive the response from Google (same value as step 2i)
       * `grant_type` which must be set to `authorization_code`
    7. Google responds at the previously specified redirect uri with the Access
-      Token
+      Token.
       * The `access_token` can be used by the Personal Data Server to access the Google API
 3. Authenticate and Authorize UIO
-   1. The Personal Data Server generates a time-limited session key that is associated
+   1. The Personal Data Server generates a time-limited `loginToken` that is associated
       with the authenticated Resource Owner.
-   2. The Personal Data Server responds to the `/authenticate` request sending the
-      session key to the Edge Proxy
-   3. The Edge Proxy responds to UIO's `/login/google` request, passing back the session key
+   2. The Personal Data Server saves the mapping between the `loginToken` and the external
+      website URL into the database for future verifications.
+   3. The Personal Data Server redirects to the external website URL, passing back the
+      `loginToken` as a cookie value in the response header. The cookie name is `PDS_loginToken`
 4. Making Authorized Requests to the Personal Data Server
    1. UIO make a local request to the Personal Data Server handled by the Edge Proxy,
-      passing the `loginToken` in the `Authorization` header.
+      passing the `PDS_loginToken` value as a request parameter.
    2. The Edge Proxy redirects this request to a Personal Data Server
-      end point
-   3. The Personal Data Server validates the `loginToken` authorization.
-   4. The Personal Data Server responds to the Edge Proxy
-   5. The Edge Proxy responds to UIO
+      end point.
+   3. The Personal Data Server validates the login token.
+   4. The Personal Data Server responds to the Edge Proxy.
+   5. The Edge Proxy responds to UIO.
 
 ## UIO and Edge Proxy Details
 
@@ -110,86 +112,50 @@ Personal Data Server using their Google credentials.
 
 The details of this are left to UIO.
 
-**1ii**. UIO makes a local request handled by the Edge Proxy.
+**1ii**. UIO makes a request to the Preferences Server login API.
 
 ```text
-GET /<Edge Proxy>/login/google
+GET /<Personal Data Server>/sso/google
 ```
 
-### Parameters
-
-This request has no parameters, nor payload
-
-**1iii**. The Edge Proxy redirects to the single sign-on endpoint of the
-Personal Data Server
-
-```text
-GET /<Personal Data Server>/authenticate
-```
-
-### Parameters
-
-| Name    | Type     | Description |
-| ---     | ---      | ---         |
-| `sso`   | `String` | __Required__. Identifier of the SSO provider to use, e.g. `google` |
-
-Payload: None
+This request has no parameters, no payload.
 
 This triggers the SSO workflow which is described in the [Single Sign On Details](#single-sign-on-details)
 section.
 
-<a id="step-3i"></a>**3i**. The Personal Data Server generates a time-limited
-`login_token` that is associated with the authenticated Resource Owner.
+**3i**. The Personal Data Server generates a time-limite `login_token` that is
+associated with the authenticated Resource Owner. This login token is persisted
+in the Personal Data Server's database.
 
-This login token is persisted in the Personal Data Server's database and
-associated with the Resource Owner's `sso_user_account`.  This `loginToken` has a
-expiration that is linked to the the expiration of the `access_token`
-generated by the SSO provider at the end of the Single Sign On workflow (step 2vii).
-The `access_token`'s expiration is set by the SSO provider as well.  The `loginToken`
-generated at the current step expires at the same time as the `access_token`.  When
-the SSO `access_token` expires and is refreshed, the `loginToken` is simultaneously
+**3ii**. The login token is associated with the Resource Owner's `sso_user_account`
+and the external website URL on which UIO is implemented.  This `loginToken` has a
+expiration that is defined by the Personal Data Server. When the `loginToken`
+generated at the current step has not expired but the SSO `access_token` already
+expires, the SSO `access_token` will be refreshed and the `loginToken` is simultaneously
 refreshed.
 
-**3ii, 3iii**. The Personal Data Server responds to the Edge Proxy's `/authenticate`
-request sending the session key to the Edge Proxy.  Similarly, the Edge Proxy responds to
-UIO's `/login/google` request:
-
-```text
-HTTP/1.1 200 OK
-Content-Type: application/json;charset=UTF-8
-{
-    "loginToken":"2YotnFZFEjr1zCsicMWpAA",
-    "token_type":"bearer",
-}
-```
-
-### Payload of response
-
-| Name             | Type     | Description |
-| ---              | ---      | ---         |
-| `loginToken`     | `String` | __Required__. Generated by the Personal Data Server to use to access the Resource Owner's preferences on the Personal Data Server |
-| `token_type`     | `String` | __Required__. The type of access: `bearer` |
+**3ii**. The Personal Data Server redirects to the external website URL, passing back the
+`loginToken` as a cookie in the response header. The `Expires/Max-Age` value is set to the
+timestamp when the `loginToken` expires.
 
 **4i**. UIO makes a local request to the Personal Data Server handled by the Edge Proxy,
-passing the `loginToken` in the `Authorization` header.
+passing the `loginToken` as a cookie in the request header.
 
 ```text
-GET /<Edge Proxy>/preferences
-Header: Authorization: Bearer <loginToken>
+GET /<Edge Proxy>/get_prefs
+Header: Cookie: <loginToken>
 ```
 
-#### Parameters
+#### Cookies
 
 | Name             | Type     | Description |
 | ---              | ---      | ---         |
-| `loginToken`     | `String` | __Required__. The same value generated and returned by the Personal Data Server at step 3ii and 3iii |
-| `prefsSet`       | `String` | __Required__. The name of the preferences to retrieve, e.g. "UIO"  |
+| `loginToken`     | `String` | __Required__. The same value generated and returned by the Personal Data Server at step 3ii |
 
 **4ii**. The Edge Proxy redirects this request to a Personal Data Server end point.
 
 ```text
-GET /<Personal Data Server>/preferences
-Header: Authorization: Bearer <loginToken>
+GET /<Personal Data Server>/get_prefs?loginToken={String}
 ```
 
 ### Parameters
@@ -197,14 +163,16 @@ Header: Authorization: Bearer <loginToken>
 | Name             | Type     | Description |
 | ---              | ---      | ---         |
 | `loginToken`     | `String` | __Required__. The same value generated and returned by the Personal Data Server at step 3ii and 3iii |
-| `prefsSet`       | `String` | __Required__. The name of the preferences to retrieve, e.g. "UIO"  |
 
 **4iii**. The Personal Data Server validates the `loginToken` authorization.
 
 The Personal Data Server compares the given `loginToken` against the one(s) in its
-database.  If it finds a match, it cross references that record against the `user`
-records, and from there, the associated `PrefsSafes`.  It retrieves the named `prefsSet`
-from that safe.
+database:
+
+* If it finds a match, it cross references that record against the corresponding
+`user_account` record, and retrieves the `preferences` from that record.
+* If it doesn't find a match, it redirects to the Personal Data Server login API
+`GET /<Personal Data Server>/sso/google`.
 
 **4iv**. The Personal Data Server responds to the Edge Proxy
 
@@ -212,10 +180,7 @@ from that safe.
 HTTP/1.1 200 OK
 Content-Type: application/json;charset=UTF-8
 {
-    "prefsSet":"UIO",
-    "preferences":{ ... },
-    "loginToken": "2YotnFZFEjr1zCsicMWpAA",
-    "token_type":"bearer"
+    "preferences": { ... }
 }
 ```
 
@@ -223,10 +188,7 @@ Content-Type: application/json;charset=UTF-8
 
 | Name          | Type     | Description |
 | ---           | ---      | ---         |
-| `prefsSet`    | `String` | The name of the preferences set requested at step 4ii |
 | `preferences` | `JSON`   | The preferences requested |
-| `loginToken`  | `String` | __Optional__. A refreshed `loginToken` |
-| `token_type`  | `String` | __Optional__. The type of the `loginToken`, e.g. "bearer" |
 
 The `loginToken, token_type` pair is part of the response only if the
 `loginToken` parameter of the request was legitimate, but found to have expired.
@@ -238,10 +200,7 @@ See the [Role of Refresh in Full Static Workflow](#role-of-refresh-in-full-stati
 HTTP/1.1 200 OK
 Content-Type: application/json;charset=UTF-8
 {
-    "prefsSet":"UIO",
-    "preferences":{ ... },
-    "loginToken": "2YotnFZFEjr1zCsicMWpAA",
-    "token_type":"bearer"
+    "preferences":{ ... }
 }
 ```
 
@@ -287,7 +246,7 @@ GET https://accounts.google.com/o/oauth2/auth
 | `redirect_uri`   | `String` | __Recommended__. The endpoint of the Personal Data Server where the provider redirects to upon successful authorization |
 | `scope`          | `String` | __Optional__. The scope of the access to the user's information as stored with the provider.  For example, `openid profile email` will ask for the user's Google profile, email address, and open ID |
 | `response_type`  | `String` | __Required__. The value `code` will request an access token to use to access the user's Google information |
-| `state`          | `String` | __Recommended__. Anti-forgery unique session token |
+| `state`          | `String` | __Recommended__. Anti-forgery unique state token |
 | `access_type`    | `String`, one of [`offline`, `online`] | __Optional__. Whether to return a refresh token with the access token (`offline`), defaults to `online`.  This parameter is specific to Google's API |
 
 Payload: none
@@ -318,7 +277,7 @@ GET https://<redirect_uri>/
 | Name             | Type     | Description |
 | ---              | ---      | ---         |
 | `code`           | `String` | __Required__. The authorization code generated by Google's authorization service |
-| `state`          | `String` | __Required__. Anti-forgery unique session token sent to Google by the Personal Data Server in step 2i. |
+| `state`          | `String` | __Required__. Anti-forgery unique state token sent to Google by the Personal Data Server in step 2i. |
 | `scope`          | `String` | The scope of access to the user's information as stored with Google that the user consented to. |
 
 Payload: None

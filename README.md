@@ -43,21 +43,21 @@ npm start
 ### Clear Database
 
 By default, running `npm start` will preserve the data in the database from previous runs. If a user wanted to
-have a fresh start without any historical data, set the environment variable `CLEARDB` informs scripts to remove
+have a fresh start without any historical data, set the environment variable `PDS_CLEARDB` informs scripts to remove
 the old database, re-create all tables and load initial data. Example:
 
 ```bash
-export CLEARDB=true; npm start
+export PDS_CLEARDB=true; npm start
 ```
 
 ### Skip Docker
 
 By default, running `npm start` or `npm test` will start a Postgres docker container to serve the backend database.
 However, as Docker is not supported by Windows OS, another option is to install Postgres locally and set the
-environment variable `SKIPDOCKER` to inform scripts to skip the auto-start of a Postgres docker container. Example:
+environment variable `PDS_SKIPDOCKER` to inform scripts to skip the auto-start of a Postgres docker container. Example:
 
 ```bash
-export SKIPDOCKER=true; npm start
+export PDS_SKIPDOCKER=true; npm start
 ```
 
 Note: In order for the script to access the local Postgres database, you need to add a superuser account to the
@@ -74,7 +74,9 @@ can be overridden by a corresponding environment variable.
 
 | Name        | Default Value | Description | Envionment Variable for Overriding |
 | ----------- | ----------- | ----------- | ----------- |
-| port | 3000 | The port that the server will listen on | SERVERPORT |
+| port | 3000 | The port that the server will listen on | PDS_SERVERPORT |
+| loginTokenExpiresIn | 86400 | The lifetime of login tokens in seconds | PDS_LOGINTOKENEXPIRESIN |
+| selfDomain | <http://localhost:3000> | The domain that Personal Data Server uses. Referer URL of this domain is not tracked when SSO endpoints are called as the request is not issued externally. Note that a trailing slash should not be included. | |
 
 * Database Configuration
 
@@ -82,11 +84,11 @@ can be overridden by a corresponding environment variable.
 | ----------- | ----------- | ----------- | ----------- |
 | dbContainerName | PersonalDataPostgres | The name of the postgres docker container | |
 | dbDockerImage | postgres:14.1-alpine | The postgres docker image tag pulled from [the official docker image hub](https://hub.docker.com/_/postgres) | |
-| database | personalData | The database name | DATABASE |
-| host | localhost | The host that the personal data server starts on | DBHOST |
-| port | 5432 | The port that the personal data server listens on | DBPORT |
-| user | admin | The user created for creating the postgres database | DBUSER |
-| password | asecretpassword | The password for the user | DBPASSWORD |
+| database | personalData | The database name | PDS_DATABASE |
+| host | localhost | The host that the personal data server starts on | PDS_DBHOST |
+| port | 5432 | The port that the personal data server listens on | PDS_DBPORT |
+| user | admin | The user created for creating the postgres database | PDS_DBUSER |
+| password | asecretpassword | The password for the user | PDS_DBPASSWORD |
 
 ## Development
 

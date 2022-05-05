@@ -12,14 +12,15 @@
 "use strict";
 
 const express = require("express");
+const path = require("path");
 const router = express.Router();
-const ssoDbOps = require("../ssoDbOps.js");
+const dbOps = require("../dbOps.js");
 
 /**
  * Home page.
  */
 router.get("/", function (req, res) {
-    res.render("index", { title: "Personal Data Server" });
+    res.sendFile(path.join(__dirname + "/../views/index.html"));
 });
 
 /**
@@ -35,7 +36,7 @@ router.get("/health", function (req, res) {
  * "/ready" end point -- if server is healthy and the database is ready.
  */
 router.get("/ready", function (req, res) {
-    ssoDbOps.isReady().then(
+    dbOps.isReady().then(
         (ready) => { res.json({ isReady: ready }); },
         () => {
             res.status(503);
