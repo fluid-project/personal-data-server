@@ -27,7 +27,7 @@ jqUnit.module("Personal Data Server Preferences API Tests");
 
 fluid.registerNamespace("fluid.tests.prefsApi");
 
-const skipDocker = process.env.SKIPDOCKER === "true" ? true : false;
+const skipDocker = process.env.PDS_SKIPDOCKER === "true" ? true : false;
 
 jqUnit.test("Get preferences /get_prefs API tests", async function () {
     jqUnit.expect(skipDocker ? 11 : 13);
@@ -112,7 +112,7 @@ jqUnit.test("Get preferences /get_prefs API tests", async function () {
 });
 
 jqUnit.test("Save preferences /save_prefs API tests", async function () {
-    jqUnit.expect(skipDocker ? 14 : 16);
+    jqUnit.expect(skipDocker ? 17 : 19);
     let serverStatus, response;
 
     if (!skipDocker) {
@@ -172,11 +172,20 @@ jqUnit.test("Save preferences /save_prefs API tests", async function () {
     fluid.tests.utils.testResponse(response, 200, "Saved successfully.", "/save_prefs (should succeed)");
     jqUnit.assertDeepEq("The new preferences object is saved in the database", prefsToSave, await dbOps.getPreferences(loginToken));
 
-    // 2. Failed case: loginToken is not provided
+    // 2. Success case: when the preferences object is not provided, an empty object is saved into the database
+    response = await fluid.tests.utils.sendRequest(serverUrl, "/save_prefs", {
+        headers: {
+            "Authorization": "Bearer " + loginToken
+        }
+    }, "post", undefined);
+    fluid.tests.utils.testResponse(response, 200, "Saved successfully.", "/save_prefs (should succeed)");
+    jqUnit.assertDeepEq("The new preferences object is saved in the database", {}, await dbOps.getPreferences(loginToken));
+
+    // 3. Failed case: loginToken is not provided
     response = await fluid.tests.utils.sendRequest(serverUrl, "/save_prefs", null, "post", prefsToSave);
     fluid.tests.utils.testResponse(response, 403, {"isError": true, "message": "Please login first."}, "/save_prefs");
 
-    // 3. Failed case: wrong loginToken is not provided
+    // 4. Failed case: wrong loginToken is not provided
     response = await fluid.tests.utils.sendRequest(serverUrl, "/save_prefs", {
         headers: {
             "Authorization": "Bearer wrong"
@@ -184,14 +193,15 @@ jqUnit.test("Save preferences /save_prefs API tests", async function () {
     }, "post", prefsToSave);
     fluid.tests.utils.testResponse(response, 403, {"isError": true, "message": "Invalid login token. Please login."}, "/save_prefs");
 
-    // 4. Failed case: when the size of the preferences object exceeds the size limit
-    const largeObject = fluid.tests.prefsApi.createLargeObject(2);
+    // 5. Failed case: when the size of the preferences object exceeds the size limit
+    const largeObject = fluid.tests.prefsApi.createLargeObject(config.server.allowedPrefsSize + 1);
     response = await fluid.tests.utils.sendRequest(serverUrl, "/save_prefs", {
         headers: {
             "Authorization": "Bearer " + loginToken
         }
     }, "post", largeObject);
-    fluid.tests.utils.testResponse(response, 403, {"isError": true, "message": "The size of preferences exceeds the limit."}, "/save_prefs");
+    jqUnit.assertEquals("The response code is 413", 413, response.status);
+    jqUnit.assertTrue("The error is reported", response.data.includes("request entity too large"));
 
     if (!skipDocker) {
         // Stop the docker container for the database
@@ -205,13 +215,10 @@ jqUnit.test("Save preferences /save_prefs API tests", async function () {
     jqUnit.assertFalse("The server has been stopped", serverStatus);
 });
 
-// create a large object: https://gist.github.com/artifi/2047874
-fluid.tests.prefsApi.createLargeObject = function (numOfKeys) {
-    const crypto = require("crypto");
-    let objectTogo = {}, key;
-    for (let i = 0; i < numOfKeys; i++) {
-        key = "key_" + i + "_" + crypto.createHash("md5").update(i + "aaaa" + Date.now()).digest("hex");
-        objectTogo[key] = crypto.randomBytes(1024);
-    }
-    return objectTogo;
+// create a large object in the given size
+// See https://stackoverflow.com/questions/14343844/create-a-string-of-variable-length-filled-with-a-repeated-character/34811384#34811384
+fluid.tests.prefsApi.createLargeObject = function (size) {
+    return {
+        "a": "#".repeat(size - 1)
+    };
 };

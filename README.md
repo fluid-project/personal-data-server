@@ -76,6 +76,7 @@ can be overridden by a corresponding environment variable.
 | ----------- | ----------- | ----------- | ----------- |
 | port | 3000 | The port that the server will listen on | PDS_SERVERPORT |
 | loginTokenExpiresIn | 86400 | The lifetime of login tokens in seconds | PDS_LOGINTOKENEXPIRESIN |
+| allowedPrefsSize | 10K | The allowed size of the preferences object in bytes | PDS_ALLOWEDPREFSSIZE |
 | selfDomain | <http://localhost:3000> | The domain that Personal Data Server uses. Referer URL of this domain is not tracked when SSO endpoints are called as the request is not issued externally. Note that a trailing slash should not be included. | |
 
 * Database Configuration
