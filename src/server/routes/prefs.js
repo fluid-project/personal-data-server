@@ -53,10 +53,6 @@ router.get("/get_prefs", async function (req, res) {
  * 2. Verify if the preferences object contains the right values;
  * 3. If any verification failes, return error;
  * 4. Otherwise, save preferences.
- *
- * Note: when the incoming body data is `undefined` or `null`, after going thru express.json(), req.body is
- * assigned with an empty object. This empty object is then saved into the database.
- * See: https://github.com/expressjs/body-parser/blob/master/lib/types/json.js#L74
  */
 router.post("/save_prefs", async function (req, res) {
     const loginToken = getLoginToken(req.headers.authorization);
@@ -74,6 +70,9 @@ router.post("/save_prefs", async function (req, res) {
         return;
     }
 
+    // Note: when the incoming request body is `undefined` or `null`, express.json() middleware will
+    // convert it into an empty object. This empty object will then be saved.
+    // See: https://github.com/expressjs/body-parser/blob/master/lib/types/json.js#L74
     const isSuccess = await dbOps.savePrefsByLoginToken(loginToken, req.body);
 
     if (isSuccess) {
