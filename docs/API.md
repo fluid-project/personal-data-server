@@ -99,6 +99,15 @@ is save for the user who is associated with the login token.
   * `login_token` The login token can be first requested via /sso/google endpoint. It represents the authorization
     that grants a user on a specific website to access preferences. Refer to [Workflow](./Workflow.md) about the
     detail.
+* **body:** The preferences object.
+
+```json
+{
+    "textSize": 1.2,
+    "lineSpace": 1.3
+}
+```
+
 * **return:** When succeeded, return http status code 200 with a message "Saved successfully".
 
 When a login token is not found, return http status code 403 with error:
@@ -119,11 +128,5 @@ When a login token is invalid or expired, return http status code 403 with error
 }
 ```
 
-When the size of the incoming preferences is greater than 1K bytes, return http status code 403 with error:
-
-```json
-{
-    "isError": true,
-    "message": "Cannot save the incoming preferences."
-}
-```
+When the size of the incoming preferences is greater than 10K bytes, return http status code 413 with a html page
+indicating the request entity is too large.

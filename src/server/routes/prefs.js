@@ -43,14 +43,20 @@ router.get("/get_prefs", async function (req, res) {
 /**
  * Save preferences API
  * Format: POST /save_prefs
- * Post data: {
- *     loginToken: {String},
- *     preferences: {Object}
+ * Post data: the preferences object
+ * {
+ *     textSize: 1.2,
+ *     lineSpace: 1.3
+ *     ...
  * }
  * 1. Verify if the loginToken is valid and not expired;
  * 2. Verify if the preferences object contains the right values;
  * 3. If any verification failes, return error;
  * 4. Otherwise, save preferences.
+ *
+ * Note: when the incoming body data is `undefined` or `null`, after going thru express.json(), req.body is
+ * assigned with an empty object. This empty object is then saved into the database.
+ * See: https://github.com/expressjs/body-parser/blob/master/lib/types/json.js#L74
  */
 router.post("/save_prefs", async function (req, res) {
     const loginToken = getLoginToken(req.headers.authorization);
