@@ -76,6 +76,7 @@ can be overridden by a corresponding environment variable.
 | ----------- | ----------- | ----------- | ----------- |
 | port | 3000 | The port that the server will listen on | PDS_SERVERPORT |
 | loginTokenExpiresIn | 86400 | The lifetime of login tokens in seconds | PDS_LOGINTOKENEXPIRESIN |
+| allowedPrefsSize | 10K | The allowed size of the preferences object in bytes | PDS_ALLOWEDPREFSSIZE |
 | selfDomain | <http://localhost:3000> | The domain that Personal Data Server uses. Referer URL of this domain is not tracked when SSO endpoints are called as the request is not issued externally. Note that a trailing slash should not be included. | |
 
 * Database Configuration
@@ -108,6 +109,14 @@ Run the command below to run all tests in this project:
 npm test
 ```
 
+## Documentation
+
+The documentation for Personal Data Server can be found in the [`/docs`](./docs) folder.
+
+### API
+
+The Personal Data API can be found in the [API documentation](./docs/API.md).
+
 ### Helper Scripts
 
 The [`/scripts`](./scripts) folder has helper scripts for performing individual actions on the backend database including:
@@ -116,7 +125,7 @@ The [`/scripts`](./scripts) folder has helper scripts for performing individual 
 * Load data into the database in the Postgres docker container
 * Drop the database in the Postgres docker container
 
-The documentation for helper scripts can be found in the [`/docs`](./docs/HelperScripts.md) folder.
+The documentation for helper scripts can be found in the [Helper Scripts Documentation](./docs/HelperScripts.md).
 
 ## FAQ
 

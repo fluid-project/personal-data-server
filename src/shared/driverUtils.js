@@ -135,15 +135,11 @@ fluid.personalData.dockerStartDatabase = async function (container, image, dbCon
  * the postgres handler, don't pass `postgresHandler` into this function.
  *
  * @param {String} container - Name of the docker container.
- * @param {Object} postgresHandler - Optional: the postgresOps object to disconnect from the database.
  * @return {Object} result of disconnecting `postgresHandler` from the database.
  *                  {dbStopped: true} if no error; {isError: true, message: error-message} otherwise.
  */
-fluid.personalData.dockerStopDatabase = async function (container, postgresHandler) {
+fluid.personalData.dockerStopDatabase = async function (container) {
     console.log(`- Stopping database docker container ${container}`);
-    if (postgresHandler) {
-        await postgresHandler.end();
-    }
     try {
         execSync(`docker stop ${container}`);
         return {

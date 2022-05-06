@@ -57,6 +57,7 @@ const loadConfig = function (configFile) {
         server: {
             port: process.env.PDS_SERVERPORT || config.server.port,
             loginTokenExpiresIn: process.env.PDS_LOGINTOKENEXPIRESIN || config.server.loginTokenExpiresIn,
+            allowedPrefsSize: process.env.PDS_ALLOWEDPREFSSIZE || config.server.allowedPrefsSize,
             selfDomain: config.server.selfDomain
         },
         db: {

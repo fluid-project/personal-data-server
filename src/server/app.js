@@ -14,13 +14,23 @@
 const express = require("express");
 const expressSession = require("express-session");
 const logger = require("morgan");
+const path = require("path");
 
+const utils = require("../shared/utils.js");
+const config = utils.loadConfig(path.join(__dirname, "../../config.json5"));
 const indexRouter = require("./routes/index.js");
 const ssoRouter = require("./routes/sso.js");
+const prefsRouter = require("./routes/prefs.js");
 const sessionStore = require("./sessionStore.js");
 
 const app = express();
 app.use(logger("dev"));
+
+// Parse incoming requests with JSON payloads
+app.use(express.json({
+    // Control the maximum size of the preferences object
+    limit: config.server.allowedPrefsSize
+}));
 
 // Express session
 app.use(expressSession({
@@ -31,6 +41,7 @@ app.use(expressSession({
 
 // Endpoints
 app.use("/", indexRouter);
+app.use("/", prefsRouter);
 app.use("/sso", ssoRouter);
 
 // General endpoint for 404s
