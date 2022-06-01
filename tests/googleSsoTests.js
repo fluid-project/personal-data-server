@@ -133,7 +133,7 @@ jqUnit.test("Google SSO unit tests", async function () {
 });
 
 jqUnit.test("Google SSO integration tests", async function () {
-    jqUnit.expect(skipDocker ? 34 : 36);
+    jqUnit.expect(skipDocker ? 30 : 32);
     let serverStatus, response;
 
     if (!skipDocker) {
@@ -173,21 +173,13 @@ jqUnit.test("Google SSO integration tests", async function () {
     // Test the successful workflows of "/sso/google" & "/sso/google/login/callback"
     // Success case 1: referer is not in the "/sso/google" request header
     response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google");
-    fluid.tests.utils.testResponse(response, 200, "", "/sso/google");
+    fluid.tests.utils.testResponse(response, 403, {
+        isError: true,
+        message: "Missing the referrer information"
+    }, "/sso/google");
     fluid.tests.googleSso.testNumOfRecords(
         "When the referer is not in the request header, referer_tracker table is not upated",
         dbOps, "referer_tracker", 0
-    );
-
-    response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + fluid.tests.utils.mockAuthCode + "&state=" + fluid.tests.utils.authPayload.state);
-    fluid.tests.utils.testResponse(response, 200, {accessToken: "\"PatAccessToken.someRandomeString\""}, "/sso/google/login/callback");
-    fluid.tests.googleSso.testNumOfRecords(
-        "When the referer is not in the request header, access token is generated",
-        dbOps, "access_token", 1
-    );
-    fluid.tests.googleSso.testNumOfRecords(
-        "When the referer is not in the request header, login token is not generated",
-        dbOps, "login_token", 0
     );
 
     // Success case 2: referer is Personal Data Server self domain
@@ -203,7 +195,7 @@ jqUnit.test("Google SSO integration tests", async function () {
     );
 
     response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + fluid.tests.utils.mockAuthCode + "&state=" + fluid.tests.utils.authPayload.state);
-    fluid.tests.utils.testResponse(response, 200, {accessToken: "\"PatAccessToken.someRandomeString\""}, "/sso/google/login/callback");
+    fluid.tests.utils.testResponse(response, 200, {"message": "Google sign in successfully."}, "/sso/google/login/callback");
     fluid.tests.googleSso.testNumOfRecords(
         "When the referer is Personal Data Server self domain, access token is generated",
         dbOps, "access_token", 1
