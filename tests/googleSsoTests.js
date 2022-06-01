@@ -175,7 +175,7 @@ jqUnit.test("Google SSO integration tests", async function () {
     response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google");
     fluid.tests.utils.testResponse(response, 403, {
         isError: true,
-        message: "Missing the referrer information"
+        message: "Authorization request is missing the required \"referer\" header"
     }, "/sso/google");
     fluid.tests.googleSso.testNumOfRecords(
         "When the referer is not in the request header, referer_tracker table is not upated",
@@ -195,7 +195,7 @@ jqUnit.test("Google SSO integration tests", async function () {
     );
 
     response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + fluid.tests.utils.mockAuthCode + "&state=" + fluid.tests.utils.authPayload.state);
-    fluid.tests.utils.testResponse(response, 200, {"message": "Google sign in successfully."}, "/sso/google/login/callback");
+    fluid.tests.utils.testResponse(response, 200, {"message": "Personal Data Server received successful login via Google authentication"}, "/sso/google/login/callback");
     fluid.tests.googleSso.testNumOfRecords(
         "When the referer is Personal Data Server self domain, access token is generated",
         dbOps, "access_token", 1

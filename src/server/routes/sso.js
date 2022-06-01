@@ -75,11 +75,10 @@ router.get("/google", async function (req, res) {
 
         // Redirects to Google's `/authorize` endpoint
         googleSso.authorize(res, dbOps, googleSso.options, state).then(null, (error) => {
-            console.log(error);
             res.status(403).json({"isError": true, "message": error.message});
         });
     } else {
-        res.status(403).json({"isError": true, "message": "Missing the referrer information"});
+        res.status(403).json({"isError": true, "message": "Authorization request is missing the required \"referer\" header"});
         return;
     }
 });
@@ -153,7 +152,7 @@ router.get("/google/login/callback", async function (req, res) {
                 // This is a sign on process instantiated on the Personal Data Server website.
                 // Return the access token from Google.
                 console.debug("Google sign in successfully. Access token: " + accessTokenRecord.access_token);
-                res.json({"message": "Google sign in successfully."});
+                res.json({"message": "Personal Data Server received successful login via Google authentication"});
             }
         }).catch((error) => {
             res.status(403).json({"isError": true, "message": error.message});
