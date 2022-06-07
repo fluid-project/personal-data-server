@@ -177,7 +177,7 @@ jqUnit.test("Google SSO integration tests", async function () {
         isError: true,
         message: "Authorization request is missing the required \"referer\" header"
     }, "/sso/google");
-    fluid.tests.googleSso.testNumOfRecords(
+    await fluid.tests.googleSso.testNumOfRecords(
         "When the referer is not in the request header, referer_tracker table is not upated",
         dbOps, "referer_tracker", 0
     );
@@ -189,46 +189,49 @@ jqUnit.test("Google SSO integration tests", async function () {
         }
     });
     fluid.tests.utils.testResponse(response, 200, "", "/sso/google");
-    fluid.tests.googleSso.testNumOfRecords(
+    await fluid.tests.googleSso.testNumOfRecords(
         "When the referer is Personal Data Server self domain, referer_tracker table is not upated",
         dbOps, "referer_tracker", 0
     );
 
     response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + fluid.tests.utils.mockAuthCode + "&state=" + fluid.tests.utils.authPayload.state);
     fluid.tests.utils.testResponse(response, 200, {"message": "Personal Data Server received successful login via Google authentication"}, "/sso/google/login/callback");
-    fluid.tests.googleSso.testNumOfRecords(
+    await fluid.tests.googleSso.testNumOfRecords(
         "When the referer is Personal Data Server self domain, access token is generated",
         dbOps, "access_token", 1
     );
-    fluid.tests.googleSso.testNumOfRecords(
+    await fluid.tests.googleSso.testNumOfRecords(
         "When the referer is Personal Data Server self domain, login token is not generated",
         dbOps, "login_token", 0
     );
 
     // Success case 3: referer is from an external url that is not Personal Data Server self domain.
     // The response should redirect to the external url.
+    await fluid.personalData.clearDB(dbOps, fluid.tests.sqlFiles.clearDB);
+    await fluid.personalData.initDB(dbOps, fluid.tests.sqlFiles);
+
     response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google", {
         "headers": {
             "referer": fluid.tests.utils.mockReferer
         }
     });
     fluid.tests.utils.testResponse(response, 200, "", "/sso/google");
-    fluid.tests.googleSso.testNumOfRecords(
+    await fluid.tests.googleSso.testNumOfRecords(
         "When the referer is an external URL, referer_tracker table is upated",
         dbOps, "referer_tracker", 1
     );
 
     response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + fluid.tests.utils.mockAuthCode + "&state=" + fluid.tests.utils.authPayload.state);
     jqUnit.assertEquals("The response redirects to the mock referer", "external.site.com", response.hostname);
-    fluid.tests.googleSso.testNumOfRecords(
+    await fluid.tests.googleSso.testNumOfRecords(
         "When the referer is an external URL, referer_tracker record is removed after the verification",
         dbOps, "referer_tracker", 0
     );
-    fluid.tests.googleSso.testNumOfRecords(
+    await fluid.tests.googleSso.testNumOfRecords(
         "When the referer is an external URL, access token is generated",
         dbOps, "access_token", 1
     );
-    fluid.tests.googleSso.testNumOfRecords(
+    await fluid.tests.googleSso.testNumOfRecords(
         "When the referer is an external URL, login token is generated",
         dbOps, "login_token", 1
     );
