@@ -127,6 +127,19 @@ The [`/scripts`](./scripts) folder has helper scripts for performing individual 
 
 The documentation for helper scripts can be found in the [Helper Scripts Documentation](./docs/HelperScripts.md).
 
+## Deployments
+
+### pds.fluidproject.org
+
+The `main` branch of this repository is automatically deployed to [pds.fluidproject.org](https://pds.fluidproject.org) using a GitHub Actions [workflow](./.github/workflows/deploy-main.yml).
+
+This deployment uses the `PDS_SERVERPORT` and `PDS_DOMAIN` environment variables (defined [here](https://github.com/fluid-project/personal-data-server/settings/secrets/actions) to customize the default settings.
+
+The `PDS_DOMAIN` variable is set to `https://pds.fluidproject.org` and directly impacts how the `REDIRECT_URI` value is provided for SSO users.
+
+The `PDS_SERVERPORT` variable is set to `38095` which is a staticly allocated port in the deployment server. If this needs to be changed for any reason, the change should also be reflected in the Ansible configuration repository (specifically, the load balancers group_vars).
+
+
 ## FAQ
 
 ### How to deal with the permission failure when trying to execute docker?
