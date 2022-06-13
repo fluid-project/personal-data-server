@@ -15,8 +15,11 @@
 "use strict";
 
 const axios = require("axios");
+const path = require("path");
+const utils = require("../../../shared/utils.js");
+const config = utils.loadConfig(path.join(__dirname, "../../../../config.json5"));
 
-const REDIRECT_URI = "http://localhost:3000/sso/google/login/callback";
+const REDIRECT_URI = `${config.server.selfDomain}/sso/google/login/callback`;
 
 const options = {
     // Google authorization endpoint to start their authorization workflow.

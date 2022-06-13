@@ -1,0 +1,42 @@
+services:
+  pds:
+    build:
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - ${PDS_SERVERPORT:-3000}:3000
+    environment:
+      PDS_DOMAIN: ${PDS_DOMAIN:-http://localhost:3000}
+      PDS_DBHOST: ${PDS_DBHOST:-postgres}
+      PDS_DBPORT: ${PDS_DBPORT:-5432}
+      PDS_DATABASE: ${PDS_DATABASE:-pds}
+      PDS_DBUSER: ${PDS_DBUSER:-pds}
+      PDS_DBPASSWORD: ${PDS_DBPASSWORD:-pds}
+    networks:
+      - pds
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:14-alpine
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: ${PDS_DBPASSWORD:-pds}
+      POSTGRES_USER: ${PDS_DBUSER:-pds}
+      POSTGRES_DB: ${PDS_DATABASE:-pds}
+    networks:
+      - pds
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+networks:
+  pds:
+    driver: bridge
+
+volumes:
+  postgres:
