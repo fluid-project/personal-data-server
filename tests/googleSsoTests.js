@@ -329,7 +329,7 @@ fluid.tests.googleSso.testNumOfRecords = async function (msg, dbOps, tableName, 
 fluid.tests.googleSso.storeUserAndAccessToken = async function (googleSso, dbOps, userInfo, accessTokenInfo) {
     try {
         console.debug("- Calling googleSso.storeUserAndAccessToken()");
-        return await googleSso.storeUserAndAccessToken(userInfo, accessTokenInfo, dbOps, googleSso.options.provider, googleSso.options.defaultPreferences);
+        return await googleSso.storeUserAndAccessToken(userInfo, accessTokenInfo, dbOps, googleSso.options.provider, {});
     } catch (error) {
         console.debug(error.message);
     }
@@ -361,7 +361,7 @@ fluid.tests.googleSso.testStoreUserAndAccessToken = async function (response, db
 
     // Check user_account record in the database
     const userRecord = await dbOps.runSql(`SELECT * FROM user_account WHERE user_account_id='${ssoUserAccountRecord.rows[0].user_account_id}';`);
-    jqUnit.assertDeepEq(`${checkPrefix} user_account.preferences`, ssoOptions.defaultPreferences, userRecord.rows[0].preferences);
+    jqUnit.assertDeepEq(`${checkPrefix} user_account.preferences`, {}, userRecord.rows[0].preferences);
     jqUnit.assertNotNull(`${checkPrefix} user_account.created_timestamp`, userRecord.rows[0].created_timestamp);
     jqUnit.assertNull(`${checkPrefix} user_account.last_updated_timestamp`, userRecord.rows[0].last_updated_timestamp);
 

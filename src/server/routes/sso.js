@@ -144,10 +144,13 @@ router.get("/google/login/callback", async function (req, res) {
                     loginTokenRecord = await dbOps.createLoginToken(accessTokenRecord.sso_user_account_id, refererTrackerRecord.referer_origin, loginToken, expiryTimestamp);
                 }
 
-                // Re-direct back to the referer origin with a cookie expiration defined in
-                // googleSso.options.loginTokenExpiresIn
-                res.cookie("PDS_loginToken", loginToken, { maxAge: config.server.loginTokenExpiresIn * 1000 });
-                res.redirect(302, refererTrackerRecord.referer_url);
+                // Re-direct back to the login token redirect url with these parameters: the login token;
+                // the max age of the login token; the referer url
+                let redirectUrl = config.server.loginTokenRedirectUrl.replace("{refererOrigin}", refererTrackerRecord.referer_origin)
+                    + "?loginToken=" + encodeURIComponent(loginToken)
+                    + "&maxAge=" + config.server.loginTokenExpiresIn * 1000
+                    + "&refererUrl=" + encodeURIComponent(refererTrackerRecord.referer_url);
+                res.redirect(302, redirectUrl);
             } else {
                 // This is a sign on process instantiated on the Personal Data Server website.
                 // Return the access token from Google.
