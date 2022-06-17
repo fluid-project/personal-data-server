@@ -128,6 +128,11 @@ The [`/scripts`](./scripts) folder has helper scripts for performing individual 
 
 The documentation for helper scripts can be found in the [Helper Scripts Documentation](./docs/HelperScripts.md).
 
+### Edge Proxy Example
+
+To interact with Personal Data Server, the external website needs to provide a edge proxy on its server to support
+the communication. [Edge Proxy Example](./src/edgeProxy) shows a sample edge proxy to demonstrate this interaction.
+
 ## Deployments
 
 ### pds.fluidproject.org

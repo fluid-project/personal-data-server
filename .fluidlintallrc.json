@@ -9,5 +9,36 @@
         "newlines": {
             "excludes": [".DS_Store"]
         }
+    },
+    "eslint": {
+        "js": {
+            "excludes": ["src/edgeProxy/public/lib/*","src/edgeProxy/node_modules/*"]
+        },
+        "json": {
+            "excludes": ["src/edgeProxy/public/lib/*","src/edgeProxy/node_modules/*"]
+        },
+        "md": {
+            "excludes": ["src/edgeProxy/public/lib/*","src/edgeProxy/node_modules/*"]
+        }
+    },
+    "lintspaces": {
+        "jsonindentation": {
+            "excludes": ["src/edgeProxy/package-lock.json","src/edgeProxy/public/lib/*","src/edgeProxy/node_modules/*"]
+        },
+        "newlines": {
+            "excludes": ["src/edgeProxy/public/lib/*","src/edgeProxy/node_modules/*"]
+        }
+    },
+    "markdownlint": {
+        "excludes": ["src/edgeProxy/public/lib/*","src/edgeProxy/node_modules/*"]
+    },
+    "mdjsonlint": {
+        "excludes": ["src/edgeProxy/public/lib/*","src/edgeProxy/node_modules/*"]
+    },
+    "stylelint": {
+        "excludes": ["src/edgeProxy/public/lib/*","src/edgeProxy/node_modules/*"]
+    },
+    "yaml": {
+        "excludes": ["src/edgeProxy/public/lib/*","src/edgeProxy/node_modules/*"]
     }
 }
