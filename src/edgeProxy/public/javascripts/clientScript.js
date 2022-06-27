@@ -23,9 +23,26 @@ document.getElementById("get_prefs").addEventListener("click", () => {
 
 // The event listener for the "save preferences" button click
 document.getElementById("save_prefs").addEventListener("click", () => {
-    fetch("/api/save_prefs").then(response => {
-        showResponse(response, "Saved preferences: <br />");
-    });
+    const uiSettingsCookie = document.cookie
+        .split("; ")
+        .find(row => row.startsWith("fluid-ui-settings="))
+        .split("=")[1];
+
+    if (!uiSettingsCookie || uiSettingsCookie === "") {
+        document.getElementById("message").innerHTML =
+            "Note: Please click \"show preferences\" at the top right corner, select your UI preferences. Then click \"Save Preferences\" to save selected preferences to Personal Data Server.";
+    } else {
+        const uiSettings = JSON.parse(decodeURIComponent(uiSettingsCookie));
+        fetch("/api/save_prefs", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(uiSettings.preferences ? uiSettings.preferences : {})
+        }).then(response => {
+            showResponse(response, "Saved preferences: <br />");
+        });
+    }
 });
 
 const showResponse = function (response, successHeader) {

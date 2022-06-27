@@ -30,9 +30,10 @@ npm start
 
 * Open `http://localhost:3000/` in a browser to access Personal Data Server.
 
-Note: Edge Proxy runs on "127.0.0.1" and Personal Data Server runs on "localhost", or vice versa. They should not
-both running on the same domain as "127.0.0.1" or "localhost". This is to workaround the issue that the cookie value
-can be cross posted when they are on the same domain regardless they are running on different ports.
+Note: Edge Proxy should be run on "127.0.0.1" and Personal Data Server should be run on "localhost", or vice versa.
+They should not both running on the same domain as "127.0.0.1" or "localhost". This will allow for a valid
+demonstration of transmitting the session cookie value between the different domains that the Personal Data Server
+and the Edge Proxy would ordinarily be hosted from.
 
 **Demonstrate:** follow instructions on the Edge Proxy page to demonstrate
 

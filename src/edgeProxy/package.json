@@ -3,7 +3,7 @@
     "version": "0.0.0",
     "private": true,
     "scripts": {
-        "buildLib": "rm -rf public/lib; mkdir public/lib; cp -rf node_modules/infusion public/lib/infusion",
+        "buildLib": "rm -rf public/lib; mkdir public/lib && cp -rf node_modules/infusion public/lib/infusion",
         "start": "npm run buildLib; node edgeProxy.js"
     },
     "dependencies": {

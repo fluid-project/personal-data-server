@@ -44,16 +44,17 @@ router.get("/get_prefs", async function (req, res) {
 });
 
 // Relay the save preferences call to the Personal Data Server
-router.get("/save_prefs", async function (req, res) {
+router.post("/save_prefs", async function (req, res) {
     if (!req.cookies || !req.cookies.PDS_loginToken) {
         res.status(401).json({
-            message: "Unauthorized. Missing 'PDS_loginToken' cookie value."
+            "message": "Unauthorized. Missing 'PDS_loginToken' cookie value."
         });
     } else {
-        const incomingUiSettings = req.cookies["fluid-ui-settings"] ? JSON.parse(req.cookies["fluid-ui-settings"]) : {};
-        const preferences = incomingUiSettings.preferences ? incomingUiSettings.preferences : {};
-
-        await axios.post(pdsServer + "/save_prefs", preferences || {}, {
+        const preferences = req.body;
+        // Note: when the incoming request body is `undefined` or `null`, express.json() middleware will
+        // convert it into an empty object. This empty object will then be saved.
+        // See: https://github.com/expressjs/body-parser/blob/master/lib/types/json.js#L74
+        await axios.post(pdsServer + "/save_prefs", preferences, {
             headers: {
                 "Authorization": "Bearer " + req.cookies.PDS_loginToken
             }
