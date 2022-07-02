@@ -7,7 +7,6 @@
 "use strict";
 
 const app = require("./app");
-const debug = require("debug")("edgeproxy:server");
 const http = require("http");
 
 /**
@@ -88,5 +87,6 @@ function onListening() {
     const bind = typeof addr === "string"
         ? "pipe " + addr
         : "port " + addr.port;
-    debug("Listening on " + bind);
+    console.log("Personal data server edge proxy listening on port " + bind);
+    console.log("Access the Edge Proxy example page at http://127.0.0.1:" + addr.port);
 }
