@@ -150,6 +150,8 @@ The `PDS_SERVERPORT` variable is set to `38095` which is a staticly allocated po
 needs to be changed for any reason, the change should also be reflected in the Ansible configuration repository
 (specifically, the load balancers group_vars).
 
+**WARNING**: Due to a [bug](https://github.com/appleboy/ssh-action/issues/166) in the GitHub action used to connect to the deployment server, these variables have been hardcoded in the `scripts/gha-deploy-main.sh` script. The GitHub Secrets values are current not being used.
+
 ## FAQ
 
 ### How to deal with the permission failure when trying to execute docker?

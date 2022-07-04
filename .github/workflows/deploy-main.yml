@@ -21,9 +21,10 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           env: main
 
-      - name: Deploy stack
+      - name: Update repository on deployment server
         uses: appleboy/ssh-action@master
         with:
+          debug: true
           host: ${{ secrets.SSH_HOSTNAME }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -32,11 +33,27 @@ jobs:
           proxy_username: ${{ secrets.SSH_PROXY_USERNAME }}
           proxy_key: ${{ secrets.SSH_PROXY_PRIVATE_KEY }}
           proxy_port: ${{ secrets.SSH_PROXY_PORT }}
-          script: |
-            cd /srv/fluid-pds-main && \
-            git checkout main && \
-            git pull && \
-            /usr/local/bin/docker-compose up -d --force-recreate
+          script_stop: true
+          script: cd /srv/fluid-pds-main && git pull
+
+      - name: Deploy containers
+        uses: appleboy/ssh-action@master
+        env:
+          PDS_SERVERPORT: ${{ secrets.PDS_SERVERPORT }}
+          PDS_DOMAIN: ${{ secrets.PDS_DOMAIN }}
+        with:
+          debug: true
+          host: ${{ secrets.SSH_HOSTNAME }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          proxy_host: ${{ secrets.SSH_PROXY_HOSTNAME }}
+          proxy_username: ${{ secrets.SSH_PROXY_USERNAME }}
+          proxy_key: ${{ secrets.SSH_PROXY_PRIVATE_KEY }}
+          proxy_port: ${{ secrets.SSH_PROXY_PORT }}
+          envs: PDS_SERVERPORT,PDS_DOMAIN
+          script_stop: true
+          script: /srv/fluid-pds-main/scripts/gha-deploy-main.sh
 
       - name: Wait
         run: sleep 15
