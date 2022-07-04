@@ -82,10 +82,7 @@ jqUnit.test("Get preferences /get_prefs API tests", async function () {
             "Authorization": "Bearer " + response.login_token
         }
     });
-    fluid.tests.utils.testResponse(response, 200, {
-        textSize: 1.2,
-        lineSpace: 1.2
-    }, "/get_prefs (should succeed)");
+    fluid.tests.utils.testResponse(response, 200, {}, "/get_prefs (should succeed)");
 
     // 2. Failed case: loginToken is not provided
     response = await fluid.tests.utils.sendRequest(serverUrl, "/get_prefs");

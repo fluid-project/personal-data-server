@@ -77,7 +77,8 @@ can be overridden by a corresponding environment variable.
 | port | 3000 | The port that the server will listen on | PDS_SERVERPORT |
 | loginTokenExpiresIn | 86400 | The lifetime of login tokens in seconds | PDS_LOGINTOKENEXPIRESIN |
 | allowedPrefsSize | 10K | The allowed size of the preferences object in bytes | PDS_ALLOWEDPREFSSIZE |
-| selfDomain | <http://localhost:3000> | The domain that Personal Data Server uses. Referer URL of this domain is not tracked when SSO endpoints are called as the request is not issued externally. Note that a trailing slash should not be included. | |
+| selfDomain | <http://localhost:3000> | The domain that Personal Data Server uses. Referer URL of this domain is not tracked when SSO endpoints are called as the request is not issued externally. Note that a trailing slash should not be included. | PDS_DOMAIN |
+| loginTokenRedirectUrl | "{refererOrigin}/api/redirect" | The string template of the redirect URL that Personal Data Server will call with the login token when the user is successfully authenticated. | PDS_LOGINTOKENREDIRECTURL |
 
 * Database Configuration
 
@@ -126,6 +127,11 @@ The [`/scripts`](./scripts) folder has helper scripts for performing individual 
 * Drop the database in the Postgres docker container
 
 The documentation for helper scripts can be found in the [Helper Scripts Documentation](./docs/HelperScripts.md).
+
+### Edge Proxy Example
+
+To interact with Personal Data Server, the external website needs to provide a edge proxy on its server to support
+the communication. [Edge Proxy Example](./src/edgeProxy) shows a sample edge proxy to demonstrate this interaction.
 
 ## Deployments
 

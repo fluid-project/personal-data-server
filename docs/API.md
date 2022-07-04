@@ -49,8 +49,9 @@ with the backend database is ready.
 * **method:** `GET`
 * **return:** Take the user through the Google sign in process where users sign in with their own Google accounts.
 If the sign-in request is issued from an external website, when the sign in completes, the response redirects the
-user back to the external website with a login token in the cookie. This login token can then be used to access this
-user's preferences.
+user back to the redirect API provided by the external website with these parameters: a login token, the max age of
+the login token in second, the referer URL of the incoming authentication request. This login token can then be used
+to access this user's preferences.
 
 ## Get preferences (GET /get_prefs)
 

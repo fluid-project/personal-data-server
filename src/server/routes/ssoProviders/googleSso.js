@@ -42,15 +42,7 @@ const options = {
 
     // Identifier for retrieving the client information (e.g. id and secret)
     // for the Personal Data Server database.
-    provider: "google",
-
-    // Default user preferences.
-    // TODO: This is a hardcoded value to temporarily fill up the value of `user_account.preferences`.
-    // It will not be needed when the workflow of defining user preferences is sorted out.
-    defaultPreferences: {
-        textSize: 1.2,
-        lineSpace: 1.2
-    }
+    provider: "google"
 };
 
 class GoogleSso {
@@ -107,7 +99,7 @@ class GoogleSso {
                 return userInfoResponse;
             }
             const userInfo = userInfoResponse.data;
-            const accessTokenRecord = await this.storeUserAndAccessToken(userInfo, accessTokenInfo, dbOps, options.provider, options.defaultPreferences);
+            const accessTokenRecord = await this.storeUserAndAccessToken(userInfo, accessTokenInfo, dbOps, options.provider, {});
             return accessTokenRecord;
         } catch (e) {
             throw e;

@@ -133,7 +133,7 @@ jqUnit.test("Google SSO unit tests", async function () {
 });
 
 jqUnit.test("Google SSO integration tests", async function () {
-    jqUnit.expect(skipDocker ? 30 : 32);
+    jqUnit.expect(skipDocker ? 35 : 37);
     let serverStatus, response;
 
     if (!skipDocker) {
@@ -171,7 +171,7 @@ jqUnit.test("Google SSO integration tests", async function () {
     fluid.tests.utils.setupMockResponses(googleSso.options, 3);
 
     // Test the successful workflows of "/sso/google" & "/sso/google/login/callback"
-    // Success case 1: referer is not in the "/sso/google" request header
+    // Success case 1: referer is not in the "/sso/google" request header, return error
     response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google");
     fluid.tests.utils.testResponse(response, 403, {
         isError: true,
@@ -183,6 +183,7 @@ jqUnit.test("Google SSO integration tests", async function () {
     );
 
     // Success case 2: referer is Personal Data Server self domain
+    // Result: save google returned access token and doesn't generate the login token
     response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google", {
         "headers": {
             "referer": config.server.selfDomain
@@ -206,7 +207,8 @@ jqUnit.test("Google SSO integration tests", async function () {
     );
 
     // Success case 3: referer is from an external url that is not Personal Data Server self domain.
-    // The response should redirect to the external url.
+    // Result: save google returned access token, generate a login token and redirect it back to the redirect URL
+    // provided by the external website.
     await fluid.personalData.clearDB(dbOps, fluid.tests.sqlFiles.clearDB);
     await fluid.personalData.initDB(dbOps, fluid.tests.sqlFiles);
 
@@ -235,6 +237,15 @@ jqUnit.test("Google SSO integration tests", async function () {
         "When the referer is an external URL, login token is generated",
         dbOps, "login_token", 1
     );
+
+    // Verify redirect URL
+    const targetRedirectUrl = new URL(response.request._currentUrl);
+    const loginTokenRow = await dbOps.getLoginToken(1, "https://external.site.com");
+    jqUnit.assertEquals("The origin of the redirect URL is correct", "https://external.site.com", targetRedirectUrl.origin);
+    jqUnit.assertEquals("The path name of the redirect URL is correct", "/api/redirect", targetRedirectUrl.pathname);
+    jqUnit.assertEquals("The login token in the redirect URL is correct", loginTokenRow.login_token, targetRedirectUrl.searchParams.get("loginToken"));
+    jqUnit.assertEquals("The login token in the redirect URL is correct", "86400000", targetRedirectUrl.searchParams.get("maxAge"));
+    jqUnit.assertEquals("The login token in the redirect URL is correct", "https://external.site.com/about/", targetRedirectUrl.searchParams.get("refererUrl"));
 
     // Test failure of "/sso/google/login/callback" - wrong anti-forgery parameter
     response = await fluid.tests.utils.sendRequest(serverUrl, "/sso/google/login/callback?code=" + fluid.tests.utils.mockAuthCode + "&state=wrongState");
@@ -329,7 +340,7 @@ fluid.tests.googleSso.testNumOfRecords = async function (msg, dbOps, tableName, 
 fluid.tests.googleSso.storeUserAndAccessToken = async function (googleSso, dbOps, userInfo, accessTokenInfo) {
     try {
         console.debug("- Calling googleSso.storeUserAndAccessToken()");
-        return await googleSso.storeUserAndAccessToken(userInfo, accessTokenInfo, dbOps, googleSso.options.provider, googleSso.options.defaultPreferences);
+        return await googleSso.storeUserAndAccessToken(userInfo, accessTokenInfo, dbOps, googleSso.options.provider, {});
     } catch (error) {
         console.debug(error.message);
     }
@@ -361,7 +372,7 @@ fluid.tests.googleSso.testStoreUserAndAccessToken = async function (response, db
 
     // Check user_account record in the database
     const userRecord = await dbOps.runSql(`SELECT * FROM user_account WHERE user_account_id='${ssoUserAccountRecord.rows[0].user_account_id}';`);
-    jqUnit.assertDeepEq(`${checkPrefix} user_account.preferences`, ssoOptions.defaultPreferences, userRecord.rows[0].preferences);
+    jqUnit.assertDeepEq(`${checkPrefix} user_account.preferences`, {}, userRecord.rows[0].preferences);
     jqUnit.assertNotNull(`${checkPrefix} user_account.created_timestamp`, userRecord.rows[0].created_timestamp);
     jqUnit.assertNull(`${checkPrefix} user_account.last_updated_timestamp`, userRecord.rows[0].last_updated_timestamp);
 

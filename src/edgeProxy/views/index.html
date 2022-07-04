@@ -1,0 +1,71 @@
+<html>
+    <head>
+        <title>Edge Proxy</title>
+
+        <link href="/stylesheets/style.css" rel="stylesheet" />
+        <link rel="stylesheet" href="/lib/infusion/src/framework/core/css/fluid.css" />
+        <link rel="stylesheet" href="/lib/infusion/src/framework/preferences/css/Enactors.css" />
+        <link rel="stylesheet" href="/lib/infusion/src/framework/preferences/css/PrefsEditor.css" />
+        <link rel="stylesheet" href="/lib/infusion/src/framework/preferences/css/SeparatedPanelPrefsEditor.css"/>
+
+        <script src="/lib/infusion/dist/infusion-uio.js" defer></script>
+        <script src="/javascripts/uio.js" defer></script>
+        <script src="/javascripts/clientScript.js" defer></script>
+    </head>
+
+    <body>
+        <!-- BEGIN markup for Preference Editor -->
+        <div class="flc-prefsEditor-separatedPanel fl-prefsEditor-separatedPanel">
+            <!--
+                This div is for the sliding panel bar that shows and hides the Preference Editor controls in the mobile view.
+                A separate panel bar for mobile displays is needed to preserver the correct tab order.
+            -->
+            <div class="fl-panelBar fl-panelBar-smallScreen">
+                <span class="fl-prefsEditor-buttons">
+                    <button class="flc-slidingPanel-toggleButton fl-prefsEditor-showHide"> Show/Hide</button>
+                    <button class="flc-prefsEditor-reset fl-prefsEditor-reset"><span class="fl-icon-undo"></span> Reset</button>
+                </span>
+            </div>
+
+            <!-- This is the div that will contain the Preference Editor component -->
+            <div class="flc-slidingPanel-panel flc-prefsEditor-iframe"></div>
+
+            <!--
+                This div is for the sliding panel bar that shows and hides the Preference Editor controls in the desktop view.
+                A separate panel bar for desktop displays is needed to preserver the correct tab order.
+            -->
+            <div class="fl-panelBar fl-panelBar-wideScreen">
+                <span class="fl-prefsEditor-buttons">
+                    <button class="flc-slidingPanel-toggleButton fl-prefsEditor-showHide"> Show/Hide</button>
+                    <button class="flc-prefsEditor-reset fl-prefsEditor-reset"><span class="fl-icon-undo"></span> Reset</button>
+                </span>
+            </div>
+        </div>
+        <!-- END markup for Preference Editor -->
+
+        <main>
+            <h1>Edge Proxy Example</h1>
+            <p>The example is to demonstrate how an external website interacts with Personal Data Server to
+                retrieve or save data.
+            </p>
+            <p>Prerequisite: Personal Data Server should be running at <code>http://localhost:3000</code>.
+                Refer to <a href="https://github.com/fluid-project/personal-data-server">Personal Data Server Documentation</a>
+                about how to start Personal Data Server locally.
+            </p>
+            <p>How to use:</p>
+            <p>1. Click "Login to Personal Data Server Using a Google Account" to log in to Personal Data Server</p>
+            <p>2. Click "Get Preferences" to retrieve preferences for your account from Personal Data Server</p>
+            <p>3. Click "show preferences" at the top right corner, select your UI preferences. Then click
+                "Save Preferences" to save selected preferences to Personal Data Server
+            </p>
+            <p>4. Click "Logout" to log out of Personal Data Server</p>
+
+            <button id="login">Login to Personal Data Server Using a Google Account</button>
+            <button id="get_prefs">Get Preferences</button>
+            <button id="save_prefs">Save Preferences</button>
+            <button id="logout">Logout</button>
+
+            <div id="message" role="region" aria-live="polite"></div>
+        </main>
+    </body>
+</html>
