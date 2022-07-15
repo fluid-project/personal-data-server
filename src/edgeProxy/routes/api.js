@@ -28,9 +28,10 @@ router.get("/redirect", function (req, res) {
 });
 
 // Relay the get preferences call to the Personal Data Server
-router.get("/get_prefs", async function (req, res) {
+router.get("/prefs", async function (req, res) {
     if (!req.cookies || !req.cookies.PDS_loginToken) {
         res.status(401).json({
+            isError: true,
             message: "Unauthorized. Missing 'PDS_loginToken' cookie value."
         });
     } else {
@@ -44,9 +45,10 @@ router.get("/get_prefs", async function (req, res) {
 });
 
 // Relay the save preferences call to the Personal Data Server
-router.post("/save_prefs", async function (req, res) {
+router.post("/prefs", async function (req, res) {
     if (!req.cookies || !req.cookies.PDS_loginToken) {
         res.status(401).json({
+            isError: true,
             "message": "Unauthorized. Missing 'PDS_loginToken' cookie value."
         });
     } else {

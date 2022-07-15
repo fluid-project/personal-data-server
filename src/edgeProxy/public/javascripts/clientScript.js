@@ -1,6 +1,27 @@
+/* global instantiateUIO */
+
 "use strict";
 
 const pdsServer = "http://localhost:3000";
+
+// Parse document.cookie to get the value of a given cookie name
+const getCookieValue = function (cookieName) {
+    if (document.cookie === "") {
+        return null;
+    }
+
+    const cookieStr = document.cookie
+        .split("; ")
+        .find(row => row.startsWith(cookieName + "="));
+    return cookieStr ? cookieStr.split("=")[1] : null;
+};
+
+// Update DOM element states based on the isLoggedIn flag
+const updateLoggedInState = function (isLoggedIn) {
+    document.getElementById("login").disabled = isLoggedIn ? true : false;
+    document.getElementById("logout").disabled = isLoggedIn ? false : true;
+    document.getElementById("message").innerHTML = "You have logged " + (isLoggedIn ? "in." : "out.");
+};
 
 // The event listener for the "login" button click
 document.getElementById("login").addEventListener("click", () => {
@@ -11,48 +32,29 @@ document.getElementById("login").addEventListener("click", () => {
 document.getElementById("logout").addEventListener("click", () => {
     // Remove "PDS_loginToken" cookie value
     document.cookie = "PDS_loginToken=; max-age=-1; path=/";
-    document.getElementById("message").innerHTML = "You have successfully logged out.";
+
+    // Update UIO with preferences fetched from the unauthenticated store
+    uio.store.settingsStore.applier.change("isLoggedIn", false);
+
+    // Update buttons and messages on the webpage to the logged out state
+    updateLoggedInState(false);
 });
 
-// The event listener for the "get preferences" button click
-document.getElementById("get_prefs").addEventListener("click", () => {
-    fetch("/api/get_prefs").then(response => {
-        showResponse(response, "Received preferences: <br />");
-    });
-});
+// Get the login token
+const loginToken = getCookieValue("PDS_loginToken");
+// Instantiate UI Options
+const uio = instantiateUIO();
+console.log(uio);
+console.log(uio.prefsEditorLoader.prefsEditor);
 
-// The event listener for the "save preferences" button click
-document.getElementById("save_prefs").addEventListener("click", () => {
-    const uiSettingsCookie = document.cookie
-        .split("; ")
-        .find(row => row.startsWith("fluid-ui-settings="))
-        .split("=")[1];
+// Actions performed at a page load based on whether the user has already logged in.
+if (loginToken) {
+    // Update UIO with merged preferences fetched from the authenticated store and unauthenticated store.
+    uio.store.settingsStore.applier.change("isLoggedIn", true);
 
-    if (!uiSettingsCookie || uiSettingsCookie === "") {
-        document.getElementById("message").innerHTML =
-            "Note: Please click \"show preferences\" at the top right corner, select your UI preferences. Then click \"Save Preferences\" to save selected preferences to Personal Data Server.";
-    } else {
-        const uiSettings = JSON.parse(decodeURIComponent(uiSettingsCookie));
-        fetch("/api/save_prefs", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(uiSettings.preferences ? uiSettings.preferences : {})
-        }).then(response => {
-            showResponse(response, "Saved preferences: <br />");
-        });
-    }
-});
-
-const showResponse = function (response, successHeader) {
-    if (response.status === 200) {
-        response.json().then(res => {
-            document.getElementById("message").innerHTML = successHeader + JSON.stringify(res);
-        });
-    } else {
-        response.json().then(error => {
-            document.getElementById("message").innerHTML = JSON.stringify(error);
-        });
-    }
-};
+    // Update buttons and messages on the webpage to the logged in state
+    updateLoggedInState(true);
+} else {
+    // Update buttons and messages on the webpage to the logged out state
+    updateLoggedInState(false);
+}
