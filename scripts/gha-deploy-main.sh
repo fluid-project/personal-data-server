@@ -10,4 +10,4 @@ export PDS_SERVERPORT=38095
 export PDS_DOMAIN=https://pds.fluidproject.org
 
 cd /srv/fluid-pds-main
-/usr/local/bin/docker-compose up -d --force-recreate
+/usr/local/bin/docker-compose up -d --build --force-recreate
