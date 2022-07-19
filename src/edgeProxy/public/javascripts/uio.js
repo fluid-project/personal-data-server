@@ -2,6 +2,11 @@
 
 "use strict";
 
+// TODO:
+// 1. when logged in, click "reset", the cookie store value is applied. The correct behavior is a pure reset.
+// 2. when logged in and reset, sometimes the db is not updated.
+// 3. Make authedStore dynamically constructed based on model.isLoggedIn.
+
 fluid.registerNamespace("fluid.prefs.edgeProxy");
 
 fluid.defaults("fluid.dataSource.noEncoding", {
@@ -71,11 +76,14 @@ fluid.prefs.edgeProxyStore.updateSettings = async function (that, prefsEditorLoa
         // When same preferences exist in both sets, preferences from the unauthedStore take precedence.
         const unauthedPrefs = await fluid.prefs.edgeProxyStore.getPrefsFromStore(that.unauthedStore);
         const authedPrefs = await fluid.prefs.edgeProxyStore.getPrefsFromStore(that.authedStore);
-        prefsTogo = {...authedPrefs, ...unauthedPrefs};
+        prefsTogo = fluid.extend(true, {}, authedPrefs, unauthedPrefs);
     } else {
         const unauthedSettings = await that.unauthedStore.get();
         const unauthedPrefs = unauthedSettings && unauthedSettings.preferences ? unauthedSettings.preferences : {};
-        prefsTogo = {...prefsEditor.initialModel.preferences, ...unauthedPrefs};
+        // As unauthedPrefs only contains modified preferences, when firing a change request, it leads to an issue that
+        // other preferences from authedStore will remain. Merging with the prefsEditor.initialModel cleans up changes
+        // from authedStore. This will be handled differently for working with UIO 2.
+        prefsTogo = fluid.extend(true, {}, prefsEditor.initialModel.preferences, unauthedPrefs);
     }
     if (prefsTogo) {
         prefsEditor.applier.change("preferences", prefsTogo);
@@ -86,7 +94,6 @@ fluid.prefs.edgeProxyStore.updateSettings = async function (that, prefsEditorLoa
 fluid.defaults("fluid.prefs.pdsStore", {
     gradeNames: ["fluid.dataSource.URL", "fluid.dataSource.URL.writable"],
     url: "/api/prefs",
-    method: "GET",
     writeMethod: "PUT",
     headers: {
         "Content-Type": "application/json"
