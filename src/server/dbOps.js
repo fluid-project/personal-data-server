@@ -58,7 +58,6 @@ class DataBaseRequest extends postgresOps.postgresOps {
             const clientInfo = await this.runSql(`
                 SELECT * FROM sso_provider WHERE provider='${provider}';
             `);
-            console.log("");
             if (clientInfo.rowCount !== 0) {
                 return clientInfo.rows[0];
             } else {

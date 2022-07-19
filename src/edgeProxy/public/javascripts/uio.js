@@ -1,4 +1,8 @@
+/* global getCookieValue */
+
 "use strict";
+
+fluid.registerNamespace("fluid.prefs.edgeProxy");
 
 fluid.defaults("fluid.dataSource.noEncoding", {
     gradeNames: ["fluid.dataSource", "fluid.dataSource.writable"],
@@ -39,7 +43,6 @@ fluid.defaults("fluid.prefs.edgeProxyStore", {
     modelListeners: {
         isLoggedIn: {
             listener: "fluid.prefs.edgeProxyStore.updateSettings",
-            // args: ["{that}", "{prefsEditor}", "{change}.value"]
             args: ["{that}", "{prefsEditorLoader}", "{change}.value"],
             excludeSource: "init"
         }
@@ -68,17 +71,13 @@ fluid.prefs.edgeProxyStore.updateSettings = async function (that, prefsEditorLoa
         // When same preferences exist in both sets, preferences from the unauthedStore take precedence.
         const unauthedPrefs = await fluid.prefs.edgeProxyStore.getPrefsFromStore(that.unauthedStore);
         const authedPrefs = await fluid.prefs.edgeProxyStore.getPrefsFromStore(that.authedStore);
-        console.log("unauthedPrefs: ", unauthedPrefs);
-        console.log("authedPrefs: ", authedPrefs);
         prefsTogo = {...authedPrefs, ...unauthedPrefs};
     } else {
         const unauthedSettings = await that.unauthedStore.get();
         const unauthedPrefs = unauthedSettings && unauthedSettings.preferences ? unauthedSettings.preferences : {};
         prefsTogo = {...prefsEditor.initialModel.preferences, ...unauthedPrefs};
     }
-    console.log("prefsTogo: ", prefsTogo);
     if (prefsTogo) {
-        console.log("prefsEditor: ", prefsEditor);
         prefsEditor.applier.change("preferences", prefsTogo);
     }
 };
@@ -88,11 +87,15 @@ fluid.defaults("fluid.prefs.pdsStore", {
     gradeNames: ["fluid.dataSource.URL", "fluid.dataSource.URL.writable"],
     url: "/api/prefs",
     method: "GET",
-    writeMethod: "POST",
+    writeMethod: "PUT",
     headers: {
         "Content-Type": "application/json"
     }
 });
+
+fluid.prefs.edgeProxy.updateLoggedInState = function (uio) {
+    uio.store.settingsStore.applier.change("isLoggedIn", getCookieValue("PDS_loginToken") ? true : false);
+};
 
 // Instantiate UIO
 // eslint-disable-next-line
@@ -125,6 +128,12 @@ const instantiateUIO = function () {
                         "overviewPanel": ".flc-overviewPanel"
                     }
                 }
+            }
+        },
+        listeners: {
+            "onReady.updateLoggedInState": {
+                listener: "fluid.prefs.edgeProxy.updateLoggedInState",
+                excludeSource: "init"
             }
         }
     });

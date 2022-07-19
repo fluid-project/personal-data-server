@@ -21,7 +21,7 @@ router.get("/redirect", function (req, res) {
         res.cookie("PDS_loginToken", loginToken, {
             path: "/",
             maxAge: maxAge,
-            sameSite: true
+            sameSite: "lax"
         });
         res.redirect(refererUrl);
     }
@@ -45,7 +45,7 @@ router.get("/prefs", async function (req, res) {
 });
 
 // Relay the save preferences call to the Personal Data Server
-router.post("/prefs", async function (req, res) {
+router.put("/prefs", async function (req, res) {
     if (!req.cookies || !req.cookies.PDS_loginToken) {
         res.status(401).json({
             isError: true,
