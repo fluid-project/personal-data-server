@@ -3,9 +3,10 @@
 "use strict";
 
 // TODO:
-// 1. when logged in, click "reset", the cookie store value is applied. The correct behavior is a pure reset.
+// 1. when logged in, click "reset", then reload the page, the cookie store value is applied. The correct behavior is a pure reset.
+//      this is because every page load triggers the check of isLoggedIn, which applies preferences from the cookie store.
 // 2. when logged in and reset, sometimes the db is not updated.
-// 3. Make authedStore dynamically constructed based on model.isLoggedIn.
+//    a race condition between the reset of panelIndex and the reset of preferences
 
 fluid.registerNamespace("fluid.prefs.edgeProxy");
 
@@ -30,10 +31,24 @@ fluid.defaults("fluid.prefs.edgeProxyStore", {
             options: {
                 writable: true
             }
-        },
-        authedStore: {
-            type: "fluid.prefs.pdsStore"
         }
+    },
+    dynamicComponents: {
+        authedStore: {
+            source: "{that}.model.isLoggedIn",
+            type: "fluid.prefs.pdsStore",
+            options: {
+                model: {
+                    isLoggedIn: "{edgeProxyStore}.model.isLoggedIn"
+                },
+                listeners: {
+                    "onCreate.escalate": "{edgeProxyStore}.events.onAuthedStoreReady.fire"
+                }
+            }
+        }
+    },
+    events: {
+        onAuthedStoreReady: null
     },
     listeners: {
         "onRead.impl": {
@@ -43,11 +58,15 @@ fluid.defaults("fluid.prefs.edgeProxyStore", {
         "onWrite.impl": {
             listener: "fluid.prefs.edgeProxyStore.set",
             args: ["{that}", "{arguments}.0"]   // settings
+        },
+        "onAuthedStoreReady.updateMergedSettings": {
+            listener: "fluid.prefs.edgeProxyStore.updateMergedSettings",
+            args: ["{that}", "{prefsEditorLoader}"]
         }
     },
     modelListeners: {
         isLoggedIn: {
-            listener: "fluid.prefs.edgeProxyStore.updateSettings",
+            listener: "fluid.prefs.edgeProxyStore.updateUnauthedSettings",
             args: ["{that}", "{prefsEditorLoader}", "{change}.value"],
             excludeSource: "init"
         }
@@ -67,26 +86,34 @@ fluid.prefs.edgeProxyStore.getPrefsFromStore = async function (store) {
     return settings && settings.preferences ? settings.preferences : {};
 };
 
-fluid.prefs.edgeProxyStore.updateSettings = async function (that, prefsEditorLoader, isLoggedIn) {
-    let prefsTogo;
+fluid.prefs.edgeProxyStore.updateMergedSettings = async function (that, prefsEditorLoader) {
     const prefsEditor = prefsEditorLoader.prefsEditor;
 
-    if (isLoggedIn) {
-        // Update prefsEditor model with the merged preferences from authedStore and unauthedStore.
-        // When same preferences exist in both sets, preferences from the unauthedStore take precedence.
-        const unauthedPrefs = await fluid.prefs.edgeProxyStore.getPrefsFromStore(that.unauthedStore);
-        const authedPrefs = await fluid.prefs.edgeProxyStore.getPrefsFromStore(that.authedStore);
-        prefsTogo = fluid.extend(true, {}, authedPrefs, unauthedPrefs);
-    } else {
+    // Update prefsEditor model with the merged preferences from authedStore and unauthedStore.
+    // When same preferences exist in both sets, preferences from the unauthedStore take precedence.
+    const unauthedPrefs = await fluid.prefs.edgeProxyStore.getPrefsFromStore(that.unauthedStore);
+    const authedPrefs = await fluid.prefs.edgeProxyStore.getPrefsFromStore(that.authedStore);
+    const prefsTogo = fluid.extend(true, {}, authedPrefs, unauthedPrefs);
+
+    if (prefsTogo) {
+        prefsEditor.applier.change("preferences", prefsTogo);
+    }
+};
+
+fluid.prefs.edgeProxyStore.updateUnauthedSettings = async function (that, prefsEditorLoader, isLoggedIn) {
+    const prefsEditor = prefsEditorLoader.prefsEditor;
+
+    if (!isLoggedIn) {
         const unauthedSettings = await that.unauthedStore.get();
         const unauthedPrefs = unauthedSettings && unauthedSettings.preferences ? unauthedSettings.preferences : {};
         // As unauthedPrefs only contains modified preferences, when firing a change request, it leads to an issue that
         // other preferences from authedStore will remain. Merging with the prefsEditor.initialModel cleans up changes
         // from authedStore. This will be handled differently for working with UIO 2.
-        prefsTogo = fluid.extend(true, {}, prefsEditor.initialModel.preferences, unauthedPrefs);
-    }
-    if (prefsTogo) {
-        prefsEditor.applier.change("preferences", prefsTogo);
+        const prefsTogo = fluid.extend(true, {}, prefsEditor.initialModel.preferences, unauthedPrefs);
+
+        if (prefsTogo) {
+            prefsEditor.applier.change("preferences", prefsTogo);
+        }
     }
 };
 
