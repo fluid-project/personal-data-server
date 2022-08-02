@@ -18,12 +18,16 @@ router.get("/redirect", function (req, res) {
             message: "Missing required parameters"
         });
     } else {
+        // Append "PDS_freshLogon=true" to the referer url to inform the client of a fresh logon.
+        let urlTogo = new URL(refererUrl);
+        urlTogo.searchParams.append("PDS_freshLogon", true);
+
         res.cookie("PDS_loginToken", loginToken, {
             path: "/",
             maxAge: maxAge,
             sameSite: "lax"
         });
-        res.redirect(refererUrl);
+        res.redirect(urlTogo.href);
     }
 });
 
