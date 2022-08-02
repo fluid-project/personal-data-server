@@ -2,10 +2,6 @@
 
 "use strict";
 
-// TODO:
-// 1. when redirected back to the page after the google login, applying merged preferences throws
-// "prefsEditor is undefined".
-
 fluid.registerNamespace("fluid.prefs.edgeProxy");
 
 fluid.defaults("fluid.dataSource.noEncoding", {
@@ -20,9 +16,11 @@ fluid.defaults("fluid.dataSource.noEncoding", {
 // Edge Proxy Store
 fluid.defaults("fluid.prefs.edgeProxyStore", {
     gradeNames: ["fluid.dataSource.noEncoding", "fluid.modelComponent"],
+    members: {
+        isFreshLogon: "@expand:fluid.prefs.edgeProxyStore.getFreshLogon()"
+    },
     model: {
-        isLoggedIn: false,
-        isFreshLogon: false
+        isLoggedIn: false
     },
     components: {
         unauthedStore: {
@@ -53,10 +51,6 @@ fluid.defaults("fluid.prefs.edgeProxyStore", {
         }
     },
     modelListeners: {
-        isFreshLogon: {
-            listener: "fluid.prefs.edgeProxyStore.updateMergedSettings",
-            args: ["{that}", "{prefsEditorLoader}", "{change}.value"]
-        },
         isLoggedIn: {
             listener: "fluid.prefs.edgeProxyStore.updateUnauthedSettings",
             args: ["{that}", "{prefsEditorLoader}", "{change}.value"],
@@ -65,21 +59,36 @@ fluid.defaults("fluid.prefs.edgeProxyStore", {
     }
 });
 
+// Update the fresh logon state at the page load. Check if PDS_freshLogon is a query parameter of the page url.
+// If yes, return true. Otherwise, return false.
+fluid.prefs.edgeProxyStore.getFreshLogon = function () {
+    const url = new URL(window.location);
+    const isFreshLogon = url.searchParams.get("PDS_freshLogon") === "true";
+
+    if (isFreshLogon) {
+        // Remove "PDS_freshLogon" from query strings not to confuse users
+        url.searchParams.delete("PDS_freshLogon");
+        window.history.replaceState({}, "", url.href);
+    }
+
+    return isFreshLogon;
+};
+
 // Update the log in states at the page load.
 fluid.prefs.edgeProxyStore.updateLoggedInState = function (that) {
     that.applier.change("isLoggedIn", getCookieValue("PDS_loginToken") ? true : false);
-
-    // Find if the page is redirected from a fresh logon: check if PDS_freshLogon is a query parameter of the page url
-    const url = new URL(window.location);
-    that.applier.change("isFreshLogon", url.searchParams.get("PDS_freshLogon") === "true");
-
-    // Remove "PDS_freshLogon" from query strings
-    url.searchParams.delete("PDS_freshLogon");
-    window.history.replaceState({}, "", url.href);
 };
 
-fluid.prefs.edgeProxyStore.get = function (that) {
-    return that[that.model.isLoggedIn ? "authedStore" : "unauthedStore"].get();
+fluid.prefs.edgeProxyStore.get = async function (that) {
+    if (that.isFreshLogon) {
+        const unauthedPrefs = await fluid.prefs.edgeProxyStore.getPrefsFromStore(that.unauthedStore);
+        const authedPrefs = await fluid.prefs.edgeProxyStore.getPrefsFromStore(that.authedStore);
+        return {
+            preferences: fluid.extend(true, {}, authedPrefs, unauthedPrefs)
+        };
+    } else {
+        return that[that.model.isLoggedIn ? "authedStore" : "unauthedStore"].get();
+    }
 };
 
 fluid.prefs.edgeProxyStore.set = function (that, settings) {
@@ -89,23 +98,6 @@ fluid.prefs.edgeProxyStore.set = function (that, settings) {
 fluid.prefs.edgeProxyStore.getPrefsFromStore = async function (store) {
     const settings = await store.get();
     return settings && settings.preferences ? settings.preferences : {};
-};
-
-fluid.prefs.edgeProxyStore.updateMergedSettings = async function (that, prefsEditorLoader, isFreshLogon) {
-    // Only apply merged settings after a fresh logon
-    if (isFreshLogon) {
-        const prefsEditor = prefsEditorLoader.prefsEditor;
-
-        // Update prefsEditor model with the merged preferences from authedStore and unauthedStore.
-        // When same preferences exist in both sets, preferences from the unauthedStore take precedence.
-        const unauthedPrefs = await fluid.prefs.edgeProxyStore.getPrefsFromStore(that.unauthedStore);
-        const authedPrefs = await fluid.prefs.edgeProxyStore.getPrefsFromStore(that.authedStore);
-        const prefsTogo = fluid.extend(true, {}, authedPrefs, unauthedPrefs);
-
-        if (prefsTogo) {
-            prefsEditor.applier.change("preferences", prefsTogo);
-        }
-    }
 };
 
 // When user logs out, apply preferences from unauthed store
