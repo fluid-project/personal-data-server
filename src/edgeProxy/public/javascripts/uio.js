@@ -4,18 +4,9 @@
 
 fluid.registerNamespace("fluid.prefs.edgeProxy");
 
-fluid.defaults("fluid.dataSource.noEncoding", {
-    gradeNames: ["fluid.dataSource", "fluid.dataSource.writable"],
-    components: {
-        encoding: {
-            type: "fluid.dataSource.encoding.none"
-        }
-    }
-});
-
 // Edge Proxy Store
 fluid.defaults("fluid.prefs.edgeProxyStore", {
-    gradeNames: ["fluid.dataSource.noEncoding", "fluid.modelComponent"],
+    gradeNames: ["fluid.dataSource", "fluid.dataSource.writable", "fluid.modelComponent"],
     members: {
         isFreshLogon: "@expand:fluid.prefs.edgeProxyStore.getFreshLogon()"
     },
@@ -23,6 +14,9 @@ fluid.defaults("fluid.prefs.edgeProxyStore", {
         isLoggedIn: false
     },
     components: {
+        encoding: {
+            type: "fluid.dataSource.encoding.none"
+        },
         unauthedStore: {
             type: "fluid.prefs.cookieStore",
             options: {
@@ -97,7 +91,7 @@ fluid.prefs.edgeProxyStore.set = function (that, settings) {
 
 fluid.prefs.edgeProxyStore.getPrefsFromStore = async function (store) {
     const settings = await store.get();
-    return fluid.get(settings, "preferences") || {};;
+    return settings?.preferences ?? {};
 };
 
 // When user logs out, apply preferences from unauthed store
@@ -108,7 +102,7 @@ fluid.prefs.edgeProxyStore.updateUnauthedSettings = async function (that, prefsE
     const prefsEditor = prefsEditorLoader.prefsEditor;
 
     const unauthedSettings = await that.unauthedStore.get();
-    const unauthedPrefs = unauthedSettings && unauthedSettings.preferences ? unauthedSettings.preferences : {};
+    const unauthedPrefs = unauthedSettings?.preferences ?? {};
     // As unauthedPrefs only contains modified preferences, when firing a change request, it leads to an issue that
     // other preferences from authedStore will remain. Merging with the prefsEditor.initialModel cleans up changes
     // from authedStore. This will be handled differently for working with UIO 2.
