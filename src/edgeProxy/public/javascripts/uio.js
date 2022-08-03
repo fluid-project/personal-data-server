@@ -76,7 +76,7 @@ fluid.prefs.edgeProxyStore.getFreshLogon = function () {
 
 // Update the log in states at the page load.
 fluid.prefs.edgeProxyStore.updateLoggedInState = function (that) {
-    that.applier.change("isLoggedIn", getCookieValue("PDS_loginToken") ? true : false);
+    that.applier.change("isLoggedIn", !!getCookieValue("PDS_loginToken"));
 };
 
 fluid.prefs.edgeProxyStore.get = async function (that) {
@@ -97,7 +97,7 @@ fluid.prefs.edgeProxyStore.set = function (that, settings) {
 
 fluid.prefs.edgeProxyStore.getPrefsFromStore = async function (store) {
     const settings = await store.get();
-    return settings && settings.preferences ? settings.preferences : {};
+    return fluid.get(settings, "preferences") || {};;
 };
 
 // When user logs out, apply preferences from unauthed store
@@ -155,10 +155,7 @@ const instantiateUIO = function () {
             "fluid.prefs.tableOfContents": {
                 enactor: {
                     "tocTemplate": "lib/infusion/src/components/tableOfContents/html/TableOfContents.html",
-                    "tocMessage": "lib/infusion/src/framework/preferences/messages/tableOfContents-enactor.json",
-                    ignoreForToC: {
-                        "overviewPanel": ".flc-overviewPanel"
-                    }
+                    "tocMessage": "lib/infusion/src/framework/preferences/messages/tableOfContents-enactor.json"
                 }
             }
         }

@@ -32,4 +32,4 @@ document.getElementById("logout").addEventListener("click", () => {
 });
 
 // On the page load, update buttons and messages on the webpage based on the logged in state
-updateLoggedInState(getCookieValue("PDS_loginToken") ? true : false);
+updateLoggedInState(!!getCookieValue("PDS_loginToken"));
