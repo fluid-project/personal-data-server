@@ -1,11 +1,11 @@
-/* global instantiateUIO, getCookieValue */
+/* global getCookieValue */
 
 "use strict";
 
 const pdsServer = "http://localhost:3000";
 
 // Instantiate UI Options
-const uio = instantiateUIO();
+const uio = fluid.prefs.instantiateUIO();
 
 // Update DOM element states based on the isLoggedIn flag
 const updateLoggedInState = function (isLoggedIn) {

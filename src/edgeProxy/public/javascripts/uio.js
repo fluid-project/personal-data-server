@@ -109,7 +109,7 @@ fluid.prefs.edgeProxyStore.updateUnauthedSettings = async function (that, prefsE
     const prefsTogo = fluid.extend(true, {}, prefsEditor.initialModel.preferences, unauthedPrefs);
 
     if (prefsTogo) {
-        prefsEditor.applier.change("preferences", prefsTogo);
+        fluid.replaceModelValue(prefsEditor.applier, "preferences", prefsTogo);
     }
 };
 
@@ -124,8 +124,7 @@ fluid.defaults("fluid.prefs.pdsStore", {
 });
 
 // Instantiate UIO
-// eslint-disable-next-line
-const instantiateUIO = function () {
+fluid.prefs.instantiateUIO = function () {
     fluid.contextAware.makeChecks({"fluid.prefs.edgeProxy": true});
 
     fluid.contextAware.makeAdaptation({
