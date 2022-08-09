@@ -18,19 +18,24 @@ router.get("/redirect", function (req, res) {
             message: "Missing required parameters"
         });
     } else {
+        // Append "PDS_freshLogon=true" to the referer url to inform the client of a fresh logon.
+        let urlTogo = new URL(refererUrl);
+        urlTogo.searchParams.append("PDS_freshLogon", true);
+
         res.cookie("PDS_loginToken", loginToken, {
             path: "/",
             maxAge: maxAge,
-            sameSite: true
+            sameSite: "lax"
         });
-        res.redirect(refererUrl);
+        res.redirect(urlTogo.href);
     }
 });
 
 // Relay the get preferences call to the Personal Data Server
-router.get("/get_prefs", async function (req, res) {
+router.get("/prefs", async function (req, res) {
     if (!req.cookies || !req.cookies.PDS_loginToken) {
         res.status(401).json({
+            isError: true,
             message: "Unauthorized. Missing 'PDS_loginToken' cookie value."
         });
     } else {
@@ -44,9 +49,10 @@ router.get("/get_prefs", async function (req, res) {
 });
 
 // Relay the save preferences call to the Personal Data Server
-router.post("/save_prefs", async function (req, res) {
+router.put("/prefs", async function (req, res) {
     if (!req.cookies || !req.cookies.PDS_loginToken) {
         res.status(401).json({
+            isError: true,
             "message": "Unauthorized. Missing 'PDS_loginToken' cookie value."
         });
     } else {

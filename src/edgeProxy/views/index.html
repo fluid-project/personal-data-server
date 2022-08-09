@@ -9,6 +9,7 @@
         <link rel="stylesheet" href="/lib/infusion/src/framework/preferences/css/SeparatedPanelPrefsEditor.css"/>
 
         <script src="/lib/infusion/dist/infusion-uio.js" defer></script>
+        <script src="/javascripts/utils.js" defer></script>
         <script src="/javascripts/uio.js" defer></script>
         <script src="/javascripts/clientScript.js" defer></script>
     </head>
@@ -44,25 +45,26 @@
         <!-- END markup for Preference Editor -->
 
         <main>
+            <div class="flc-toc-tocContainer toc"> </div>
+
             <h1>Edge Proxy Example</h1>
-            <p>The example is to demonstrate how an external website interacts with Personal Data Server to
-                retrieve or save data.
-            </p>
+            <p>The example is to to use UIOptions with Personal Data Server. The Personal Data Server allows the user
+                to save and load interface preferences which have been applied to websites using UIOptions.</p>
             <p>Prerequisite: Personal Data Server should be running at <code>http://localhost:3000</code>.
                 Refer to <a href="https://github.com/fluid-project/personal-data-server">Personal Data Server Documentation</a>
                 about how to start Personal Data Server locally.
             </p>
-            <p>How to use:</p>
-            <p>1. Click "Login to Personal Data Server Using a Google Account" to log in to Personal Data Server</p>
-            <p>2. Click "Get Preferences" to retrieve preferences for your account from Personal Data Server</p>
-            <p>3. Click "show preferences" at the top right corner, select your UI preferences. Then click
-                "Save Preferences" to save selected preferences to Personal Data Server
-            </p>
-            <p>4. Click "Logout" to log out of Personal Data Server</p>
+            <h2>How to use:</h2>
+            <ol>
+                <li>Click "Login to Personal Data Server Using a Google Account" to log in to Personal Data Server</li>
+                <li>Once logged in successfully, the user’s saved preferences will be fetched from the Personal Data
+                    Server and merged with any local preferences that the user selected before logging in.</li>
+                <li>Any changes you make to preferences will now be automatically saved to the Personal Data Server.</li>
+                <li>Click "Logout" to log out of Personal Data Server. The UIOptions preferences are restored to those
+                    in effect before logging in.</li>
+            </ol>
 
             <button id="login">Login to Personal Data Server Using a Google Account</button>
-            <button id="get_prefs">Get Preferences</button>
-            <button id="save_prefs">Save Preferences</button>
             <button id="logout">Logout</button>
 
             <div id="message" role="region" aria-live="polite"></div>

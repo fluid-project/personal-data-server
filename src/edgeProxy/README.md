@@ -19,7 +19,7 @@ npm ci
 npm start
 ```
 
-* Open `http://127.0.1.1:4000/` in a browser to access the Edge Proxy page.
+* Open `http://127.0.0.1:4000/` in a browser to access the Edge Proxy page.
 
 **Start Personal Data Server:** run these commands to start Personal Data Server:
 
